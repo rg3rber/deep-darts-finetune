@@ -1,6 +1,6 @@
 data:
   path: 'dataset/'
-  labels_path: 'dataset/utrechtlabels.pkl'
+  labels_path: 'dataset/labels.pkl'
   dataset: 'utrecht'
 
 board:
@@ -13,8 +13,8 @@ board:
 
 train:
   seed: 0
-  epochs: 10
-  batch_size: 1  # per gpu
+  epochs: 5
+  batch_size: 10  # per gpu
   lr: 0.001
   bbox_size: 0.025  # fraction of input size
   loss_type: 'ciou'

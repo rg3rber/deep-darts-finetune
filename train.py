@@ -120,7 +120,7 @@ def train(cfg, strategy):
             verbose=cfg.train.loss_verbose)
         yolo.model.compile(optimizer=optimizer, loss=loss)
 
-    val_steps = {'d1': 20, 'd2': 8}
+    val_steps = {'d1': 20, 'd2': 8, 'utrecht': 8}
 
     hist = yolo.model.fit(
         train_ds,
