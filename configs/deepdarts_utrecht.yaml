@@ -13,7 +13,7 @@ board:
 
 train:
   seed: 0
-  epochs: 5
+  epochs: 50
   batch_size: 10  # per gpu
   lr: 0.001
   bbox_size: 0.025  # fraction of input size
@@ -40,7 +40,7 @@ aug:
 model:
   tiny: true
   input_size: 800
-  weights_path: 'models/deepdarts_d1/weights'
+  weights_path: 'models/deepdarts_d2/weights'
   weights_type: 'tf'
   weights_layers: [
       'yolo_conv2d',

@@ -150,4 +150,4 @@ if __name__ == '__main__':
 
     tpu, strategy = detect_hardware(tpu_name=None)
     yolo = train(cfg, strategy)
-    predict(yolo, cfg, dataset=cfg.data.dataset, split='val')
+    predict(yolo, cfg, dataset=cfg.data.dataset, split='train')
