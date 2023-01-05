@@ -120,7 +120,7 @@ def train(cfg, strategy):
             verbose=cfg.train.loss_verbose)
         yolo.model.compile(optimizer=optimizer, loss=loss)
 
-    val_steps = {'d1': 20, 'd2': 8}
+    val_steps = {'d1': 20, 'd2': 8, 'utrecht': 8}
 
     hist = yolo.model.fit(
         train_ds,
@@ -150,4 +150,4 @@ if __name__ == '__main__':
 
     tpu, strategy = detect_hardware(tpu_name=None)
     yolo = train(cfg, strategy)
-    predict(yolo, cfg, dataset=cfg.data.dataset, split='val')
+    predict(yolo, cfg, dataset=cfg.data.dataset, split='train')

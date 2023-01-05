@@ -9,27 +9,37 @@ from dataset.annotate import draw, transform
 from yacs.config import CfgNode as CN
 from yolov4.tf.dataset import cut_out
 
-
-d1_val = ['d1_02_06_2020', 'd1_02_16_2020', 'd1_02_22_2020']
-d1_test = ['d1_03_03_2020', 'd1_03_19_2020', 'd1_03_23_2020', 'd1_03_27_2020', 'd1_03_28_2020', 'd1_03_30_2020', 'd1_03_31_2020']
-
-d2_val = ['d2_02_03_2021', 'd2_02_05_2021']
-d2_test = ['d2_03_03_2020', 'd2_02_10_2021', 'd2_02_03_2021_2']
+datasets = {
+    "d1": {
+        "val": ['d1_02_06_2020', 'd1_02_16_2020', 'd1_02_22_2020'],
+        "test": ['d1_03_03_2020', 'd1_03_19_2020', 'd1_03_23_2020', 'd1_03_27_2020', 'd1_03_28_2020', 'd1_03_30_2020', 'd1_03_31_2020']
+    },
+    "d2": {
+        "val": ['d2_02_03_2021', 'd2_02_05_2021'],
+        "test": ['d2_03_03_2020', 'd2_02_10_2021', 'd2_02_03_2021_2']
+    },
+    "utrecht": {
+        "val": ['utrecht_01_02_2023'],
+        "test": []
+    }
+}
 
 
 def get_splits(path='./dataset/labels.pkl', dataset='d1', split='train'):
-    assert dataset in ['d1', 'd2'], "dataset must be either 'd1' or 'd2'"
+
+    assert dataset in datasets.keys(), f"dataset must be one of {datasets.keys()}"
     assert split in [None, 'train', 'val', 'test'], "split must be in [None, 'train', 'val', 'test']"
-    if dataset == 'd1':
-        val_folders, test_folders = d1_val, d1_test
-    else:
-        val_folders, test_folders = d2_val, d2_test
+
+    val_folders, test_folders = datasets[dataset]["val"], datasets[dataset]["test"]
     df = pd.read_pickle(path)
     df = df[df.img_folder.str.contains(dataset)]
-    splits = {}
-    splits['val'] = df[np.isin(df.img_folder, val_folders)]
-    splits['test'] = df[np.isin(df.img_folder, test_folders)]
-    splits['train'] = df[np.logical_not(np.isin(df.img_folder, val_folders + test_folders))]
+
+    splits = {
+        "val": df[np.isin(df.img_folder, val_folders)],
+        "test": df[np.isin(df.img_folder, test_folders)],
+        "train": df[np.logical_not(np.isin(df.img_folder, val_folders + test_folders))]
+    }
+
     if split is None:
         return splits
     else:
