@@ -51,3 +51,14 @@ Dataset 2:\
 - Run "combine_labels"
 - Run "crop_images" with --size=800 and appropriate --labels-path
 
+## deepdarts_d3
+
+- camera setup:
+   - 120cm from board
+   - 30cm shift to the right
+   - height: 140cm
+   - pixel 8a
+   - zoom: 1.5x
+   - light color temperature: LED strip set to most white: 6700K (bullseye)
+   - brightness: LED strip set to max brightness: 845 lux (bullseye)
+
