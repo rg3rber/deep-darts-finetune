@@ -431,6 +431,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     cfg = CN(new_allowed=True)
-    cfg.merge_from_file('../configs/deepdarts_utrecht.yaml')
+    cfg.merge_from_file('../configs/deepdarts_d3.yaml')
 
     main(cfg, args.img_folder, args.scale, args.draw_circles)
