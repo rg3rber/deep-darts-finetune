@@ -3,6 +3,5 @@ __pycache__
 dataset/images/
 dataset/cropped_images/800/d1_*
 dataset/cropped_images/800/d2_*
-dataset/cropped_images/800/d3_*
 models/*/preds/
 *.zip
