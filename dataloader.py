@@ -284,7 +284,8 @@ def load_tfds(
                     [path, xy], dtypes),
                 num_parallel_calls=AUTO)
 
-    input_size = int(img_path.split('/')[-1])
+    #input_size = int(img_path.split('/')[-1]) not working on windows
+    input_size = int(os.path.basename(img_path))
 
     if not return_xy:
         if cfg.model.tiny:

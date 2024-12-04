@@ -141,7 +141,7 @@ def train(cfg, strategy):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--cfg', default='default')
+    parser.add_argument('-c', '--cfg', default='deepdarts_d3')
     args = parser.parse_args()
 
     cfg = CN(new_allowed=True)
