@@ -1,5 +1,6 @@
 name: deep-darts
 channels:
+  - conda-forge
   - defaults
 dependencies:
   - certifi=2022.12.7=py37haa95532_0

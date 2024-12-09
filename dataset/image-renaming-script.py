@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 from datetime import datetime
@@ -74,8 +75,8 @@ def rename_images_in_dataset(base_path='images'):
         file_ext = os.path.splitext(image_path)[1]
         
         # Create new filename
-        new_filename = f"{creation_date.day:02d}_{creation_date.month:02d}_{creation_date.year}_IMG_{global_id}{file_ext}"
-        
+        #new_filename = f"{creation_date.day:02d}_{creation_date.month:02d}_{creation_date.year}_IMG_{global_id}{file_ext}"
+        new_filename= f"no_crop_IMG_{global_id}{file_ext}"
         # Get directory of the current image
         directory = os.path.dirname(image_path)
         
@@ -89,9 +90,9 @@ def rename_images_in_dataset(base_path='images'):
     print(f"Processed {len(image_info)} images.")
 
 # Usage
-def main():
+def main(folder_path):
     # Specify the base path where your image folders are located
-    base_path = 'images' if len(sys.argv) < 2 else sys.argv[1]
+    base_path = folder_path
     
     # Confirm before running
     print(f"This script will rename all images in {base_path} and its subfolders.")
@@ -103,5 +104,9 @@ def main():
     else:
         print("Operation cancelled.")
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='rename images in a dataset')
+    parser.add_argument('-f', '--folder-path', default='images', help='Path to the folder containing images')
+    args = parser.parse_args()
+    
+    main(args.folder_path)
