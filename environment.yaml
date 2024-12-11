@@ -1,0 +1,18 @@
+name: deep-darts
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - cudatoolkit=10.1
+  - cudnn=7.6
+  - ca-certificates
+  - openssl
+  - pip:
+      - tensorflow==2.3.0
+      - opencv-python
+      - yacs==0.1.8
+      - pandas
+      - yolov4==2.0.3
+      - matplotlib
+prefix: C:\Users\rgerb\miniforge3\envs\deep-darts
