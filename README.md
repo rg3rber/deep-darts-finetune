@@ -61,4 +61,12 @@ Dataset 2:\
    - zoom: 1.5x
    - light color temperature: LED strip set to most white: 6700K (bullseye)
    - brightness: LED strip set to max brightness: 845 lux (bullseye)
+ 
+## Board detection: 
+
+- standard pdc board
+- proper lighting (best led surround)
+- no green or red background/surround ring (as of now)
+- image > 800x800
+- 
 
