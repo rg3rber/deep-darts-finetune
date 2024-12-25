@@ -1,0 +1,70 @@
+03_12_flight-covering: nr of contours found: 18, time to enumerate contours: 0.002012491226196289s
+
+blue_surround: nr of contours found: 2, time to enumerate contours: 0.0s
+
+blue_surround_warp: nr of contours found: 7, time to enumerate contours: 0.0010004043579101562s
+
+blue_surround_warp2: nr of contours found: 6, time to enumerate contours: 0.0s
+
+dartboard: nr of contours found: 7, time to enumerate contours: 0.0s
+
+dartboard_kastchen: nr of contours found: 226, time to enumerate contours: 0.0025091171264648438s
+
+dartboard_random2: nr of contours found: 689, time to enumerate contours: 0.007014751434326172s
+
+delaney_board-tiny: nr of contours found: 92, time to enumerate contours: 0.0019991397857666016s
+
+delaney_board_bigger: nr of contours found: 71, time to enumerate contours: 0.001008749008178711s
+
+DSC_0030: nr of contours found: 27, time to enumerate contours: 0.0020003318786621094s
+
+DSC_0035: nr of contours found: 87, time to enumerate contours: 0.0019986629486083984s
+
+DSC_0307: nr of contours found: 35, time to enumerate contours: 0.0020139217376708984s
+
+green_background: nr of contours found: 5, time to enumerate contours: 0.0s
+
+green_surround: nr of contours found: 33, time to enumerate contours: 0.0010008811950683594s
+
+green_surround_front: nr of contours found: 1, time to enumerate contours: 0.0010149478912353516s
+
+IMG_1081: nr of contours found: 20, time to enumerate contours: 0.0005202293395996094s
+
+IMG_4259: nr of contours found: 33, time to enumerate contours: 0.000530242919921875s
+
+poor_lighting1: nr of contours found: 28, time to enumerate contours: 0.0009996891021728516s
+
+random_board: nr of contours found: 625, time to enumerate contours: 0.00500178337097168s
+
+random_setup1: nr of contours found: 256, time to enumerate contours: 0.001994609832763672s
+
+red_surround: nr of contours found: 3, time to enumerate contours: 0.0010101795196533203s
+
+red_surround_warp: nr of contours found: 32, time to enumerate contours: 0.0010135173797607422s
+
+surround_dark_outdoor: nr of contours found: 237, time to enumerate contours: 0.003015279769897461s
+
+surround_gray: nr of contours found: 150, time to enumerate contours: 0.0010001659393310547s
+
+surround_mean_green: nr of contours found: 1, time to enumerate contours: 0.0s
+
+surround_noLed_noisy: nr of contours found: 108, time to enumerate contours: 0.0019979476928710938s
+
+surround_orange: nr of contours found: 20, time to enumerate contours: 0.0s
+
+surround_red_noncenter: nr of contours found: 2, time to enumerate contours: 0.0009925365447998047s
+
+surround_red_poor_lighting: nr of contours found: 8, time to enumerate contours: 0.0s
+
+surround_white_noLED: nr of contours found: 18, time to enumerate contours: 0.0s
+
+surround_wood_outdoor: nr of contours found: 188, time to enumerate contours: 0.0020172595977783203s
+
+testboard: nr of contours found: 26, time to enumerate contours: 0.0s
+
+turquese_surrond_noisy: nr of contours found: 39, time to enumerate contours: 0.0009996891021728516s
+
+wtf_board: nr of contours found: 242, time to enumerate contours: 0.0030193328857421875s
+
+yellowish-board: nr of contours found: 9, time to enumerate contours: 0.0s
+

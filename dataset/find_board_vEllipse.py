@@ -21,10 +21,10 @@ def find_board_vEllipse(img_path):
     scale_factor = 0.25
     resized_img = cv2.resize(img, (0,0), fx=scale_factor, fy=scale_factor)
     
-    imCalHSV = cv2.cvtColor(resized_img, cv2.COLOR_BGR2HSV)
-    cv2.imwrite('images/ellipse/resized-HSV.jpg', imCalHSV)
+    hsv = cv2.cvtColor(resized_img, cv2.COLOR_BGR2HSV)
+    cv2.imwrite('images/ellipse/resized-HSV.jpg', hsv)
     kernel = np.ones((5, 5), np.float32) / 25
-    blur = cv2.filter2D(imCalHSV, -1, kernel)
+    blur = cv2.filter2D(hsv, -1, kernel)
     cv2.imwrite('images/ellipse/resized-blur.jpg', blur)
     h, s, imCal = cv2.split(blur)
 
@@ -52,7 +52,7 @@ def auto_canny(image, sigma=0.33):
 	# return the edged image
 	return edged
 
-def ResizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
+def resizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
     dim = None
     (h, w) = image.shape[:2]
 
