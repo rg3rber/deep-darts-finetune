@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from yacs.config import CfgNode as CN
 import argparse
+from find_board import find_board_vEllipse2
 
 # used to convert dart angle to board number
 BOARD_DICT = {
@@ -280,8 +281,16 @@ def add_last_dart(annot, data_path, folder):
         annot['last_dart'] = dart_labels
     return annot
 
-
 def get_bounding_box(img_path, scale=0.2):
+    bbox = None
+    try:
+        bbox = find_board_vEllipse2(img_path)
+    except Exception:
+        print('Error finding board, switch to manual annotation')
+        bbox = get_bounding_box_old(img_path, scale)
+    return bbox
+
+def get_bounding_box_old(img_path, scale=0.2):
     img = cv2.imread(img_path)
     img_resized = cv2.resize(img, None, fx=scale, fy=scale)
     h, w = img_resized.shape[:2]
@@ -309,6 +318,7 @@ def get_bounding_box(img_path, scale=0.2):
     xy_bbox = np.array(xy_bbox)
     # bbox = [y1 y2 x1 x2]
     bbox = [min(xy_bbox[:, 1]), max(xy_bbox[:, 1]), min(xy_bbox[:, 0]), max(xy_bbox[:, 0])]
+    print('Bounding box:', bbox)
     return bbox
 
 
@@ -370,6 +380,11 @@ def main(cfg, folder, scale, draw_circles, dart_score=True):
             if key == ord('b'):  # draw new bounding box
                 idx = annot[(annot['img_name'] == a['img_name'])].index.values[0]
                 annot.at[idx, 'bbox'] = get_bounding_box(osp.join(img_dir, a['img_name']), scale)
+                break
+
+            if key == ord('m'):  # draw manual bounding box
+                idx = annot[(annot['img_name'] == a['img_name'])].index.values[0]
+                annot.at[idx, 'bbox'] = get_bounding_box_old(osp.join(img_dir, a['img_name']), scale)
                 break
 
             if key == ord('.'):

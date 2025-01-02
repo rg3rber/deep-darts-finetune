@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import time
 
-global contours_log
-
 def find_board_vEllipse2(img_path):
 
     img = cv2.imread(img_path)
@@ -84,20 +82,28 @@ def find_board_vEllipse2(img_path):
     # cv2.waitKey()
 
     resize_binary, scale_factor = proportionalResize(raw_binary, 1000)
+    resize_gray, scale_factor = proportionalResize(gray, 1000)
+    """ weird approach: grayEdgeDrawing = cv2.ximgproc.EdgeDrawing(resize_gray)
+    detected_edges = cv2.ximgproc.EdgeDrawing.detectEdges(grayEdgeDrawing)
 
+    detected_ellipses = cv2.ximgproc.EdgeDrawing.detectEllipses(detected_edges) """
+
+    """ for ellipse in detected_ellipses:
+        cv2.ellipse(resize_binary, ellipse, (0, 255, 0), 2)
+    cv2.imshow('All Detected Ellipses', resize_binary) """
 
     kernel = np.ones((5, 5), np.uint8)
-    closed_binary = cv2.morphologyEx(resize_binary, cv2.MORPH_CLOSE,kernel)
-    # cv2.imshow('Combined Mask closed', closed_binary)
-    # cv2.waitKey()
+    closed_binary = cv2.morphologyEx(resize_binary, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
 
-    largestEllipse = findEllipse(closed_binary, contours_log, img_name)
+    #closed_binary_kernel = cv2.morphologyEx(resize_binary, cv2.MORPH_CLOSE,kernel)
+
+    largestEllipse = findEllipse(closed_binary, img_name)
     
     #read out ellipse parameters
     ellipseCenter, axes, angle = largestEllipse
 
     resized_ellipse = (ellipseCenter[0]/scale_factor, ellipseCenter[1]/scale_factor), (axes[0]/scale_factor, axes[1]/scale_factor), angle
-    cv2.ellipse(img, resized_ellipse, (0, 255, 0), 2)
+    #cv2.ellipse(img, resized_ellipse, (0, 255, 0), 2)
 
     """ cv2.circle(closed_binary, (int(ellipseCenter[0]), int(ellipseCenter[1])), 5, (0, 255, 0), -1)
 
@@ -105,27 +111,28 @@ def find_board_vEllipse2(img_path):
     cv2.waitKey() """
 
     bbox = getSquareBboxForEllipse(ellipseCenter, axes, closed_binary.shape[0], closed_binary.shape[1])
-    cv2.rectangle(closed_binary, (int(bbox[0][0]), int(bbox[0][1] )), (int(bbox[1][0]), int(bbox[1][1])), (0, 255, 0), 10)
+    #cv2.rectangle(closed_binary, (int(bbox[0][0]), int(bbox[0][1] )), (int(bbox[1][0]), int(bbox[1][1])), (0, 255, 0), 10)
     #cv2.imshow("small with BBOX", closed_binary)
     #cv2.waitKey()
 
+    #* resized box has structure: [(x1, y1), (x2, y2)]
     resized_bbox = (int(bbox[0][0]/scale_factor), int(bbox[0][1]/scale_factor)), (int(bbox[1][0]/scale_factor), int(bbox[1][1]/scale_factor))
+    #deep-darts needs the bbox in the format: bbox = [y1 y2 x1 x2]
+    reformatted_bbox = [resized_bbox[0][1], resized_bbox[1][1], resized_bbox[0][0], resized_bbox[1][0]]
+
+    
     cv2.circle(img, (int(ellipseCenter[0]/scale_factor), int(ellipseCenter[1]/scale_factor)), 5, (0, 255, 0), -1)
 
     cv2.rectangle(img, resized_bbox[0], resized_bbox[1], (0, 255, 0), 2)
     demo_resize = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
-    cv2.imwrite(osp.join('images/boards/bbox', img_name+'-bbox.jpg'), img)
-    # cv2.imshow("Image with BBOX", demo_resize)
-    # cv2.waitKey()
-
-    lower_red1 = np.array([0, 120, 70]) 
-    upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 120, 70])
-    upper_red2 = np.array([180, 255, 255])
-
-    lower_green = np.array([40, 60, 40]) # initial: 40,40,40 improved?: 40, 40-60, 40 for outdoor: needs more sat 60 and val 80-100.
-    upper_green = np.array([80, 255, 255])
+    cv2.imshow("Bounding box preview:", demo_resize)
+    cv2.waitKey()
     
+    #store_path = osp.join('images/boards/bbox/myboard', img_name+'-bbox.jpg')
+    #print("Storing image at: ", store_path)
+    #cv2.imwrite(store_path, img)
+
+    return reformatted_bbox
 
 def otsu_thresholding(img):
     blur = cv2.GaussianBlur(img,(5,5),0)
@@ -188,17 +195,29 @@ def proportionalResize(image, target_size, inter=cv2.INTER_AREA):
 
     return image, 1
 
-def findEllipse(img, contours_log, img_name=None):
+def findEllipse(img, contours_log=None, img_name=None):
 
-    canny_output = auto_canny(img)
+    #using canny:
+    """ canny_output = auto_canny(img)
+    canny_contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    print("Number of canny contours found: ", len(canny_contours))
+    path = osp.join('images/boards/bbox/', '_'+ img_name)
+    cv2.imwrite(path + 'canny.jpg', canny_output)
+    cv2.imwrite(path + 'binary.jpg', img)
+    print("Stored canny and binary image at: ", path) """
+    
+    #directly using the binary image:
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    #maybe try different retrieval mode and contour approximation method:
+    #contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
 
-    contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     largest_ellipse = None
     largest_size = 0
     ellipses = []
 
-    start = time.time()
+    start = time.time() #TODO remove
     for i, c in enumerate(contours):
         if c.shape[0] > 5:
             ellipse = cv2.fitEllipse(c)
@@ -219,13 +238,13 @@ def findEllipse(img, contours_log, img_name=None):
         thickness = 2        # 2 pixels thick
         
         # Draw the ellipse on the image
-        cv2.ellipse(img, largest_ellipse, color, thickness)
+        #cv2.ellipse(img, largest_ellipse, color, thickness)
 
         #for ellipse in ellipses:
         #    cv2.ellipse(img, ellipse, (0, 255, 0), 2)
         # Display the image with the ellipse
     
-    contours_log.loc[len(contours_log)] = [img_name, len(contours), end-start]
+    #for testing: contours_log.loc[len(contours_log)] = [img_name, len(contours), end-start]
 
     return largest_ellipse
 
@@ -251,16 +270,17 @@ def getSquareBboxForEllipse(center, axes, h, w):
 
 if __name__ == '__main__': 
     parser = argparse.ArgumentParser(description='Code for Creating Bounding rotated boxes and ellipses for contours tutorial.')
-    parser.add_argument('-i', '--input', help='Path to input image.', default='images/boards/new-test.jpg')
+    parser.add_argument('-i', '--input', help='Path to input image.', default='images/boards/myboard/testboard.jpg')
     args = parser.parse_args()
+    curr_path = args.input
     contours_log = pd.DataFrame(columns=['image', 'nr of contours', 'time to enumerate contours'])
-    if osp.isdir(args.input):
-        for img in os.listdir(args.input):
-                if not osp.isdir(osp.join(args.input, img)):
-                    find_board_vEllipse2(osp.join(args.input, img))
+    if osp.isdir(curr_path):
+        for img in os.listdir(curr_path):
+                if not osp.isdir(osp.join(curr_path, img)):
+                    find_board_vEllipse2(osp.join(curr_path, img))
         #dump contours as txt
-        contours_log.to_csv('contours_log.csv', index=False)
+        contours_log.to_csv(osp.join(curr_path,'contours_log.csv'), index=False)
     else:
-        find_board_vEllipse2(args.input)
+        find_board_vEllipse2(curr_path)
 
     

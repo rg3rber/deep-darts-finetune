@@ -85,15 +85,14 @@ def detect_dartboard_vColorSegmentation(img):
     hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     
     # Define color ranges for dartboard colors
-    # Red is tricky in HSV as it wraps around 180/0
-    lower_red1 = np.array([0, 70, 50])
+    lower_red1 = np.array([0, 120, 70]) 
     upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 70, 50])
+    lower_red2 = np.array([170, 120, 70])
     upper_red2 = np.array([180, 255, 255])
-    
-    # Green range
-    lower_green = np.array([40, 40, 40])
+
+    lower_green = np.array([40, 60, 40]) # initial: 40,40,40 improved?: 40, 40-60, 40 for outdoor: needs more sat 60 and val 80-100.
     upper_green = np.array([80, 255, 255])
+    
     
     # Create masks for each color
     red_mask1 = cv.inRange(hsv, lower_red1, upper_red1)
