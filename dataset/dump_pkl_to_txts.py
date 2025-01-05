@@ -19,12 +19,12 @@ def create_yolo_annotation(points: List[List[float]], output_path: str, bbox_siz
         for class_id, point in enumerate(points[:4]):
             x_center, y_center = point
             # Write in YOLO format: class x_center y_center width height
-            f.write(f"{class_id} {x_center:.6f} {y_center:.6f} {bbox_size:.6f} {bbox_size:.6f}\n")
+            f.write(f"{class_id} {x_center} {y_center} {bbox_size:.6f} {bbox_size:.6f}\n")
         
         # Process dart points (remaining points)
         for point in points[4:]:
             x_center, y_center = point
-            f.write(f"4 {x_center:.6f} {y_center:.6f} {bbox_size:.6f} {bbox_size:.6f}\n")
+            f.write(f"4 {x_center} {y_center} {bbox_size:.6f} {bbox_size:.6f}\n")
 
 def convert_annotations(pkl_path: str, output_dir: str, bbox_size: float) -> None:
     """
