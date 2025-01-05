@@ -57,13 +57,6 @@ def convert_annotations(pkl_path: str, output_dir: str, bbox_size: float) -> Non
         # Create YOLO annotation file
         create_yolo_annotation(points, output_path, bbox_size)
 
-def main(cfg, label_path, img_size, output_dir):
-    half_side_bbox = cfg.train.bbox_size/2  # Half of the bounding box size (normalized)
-    
-    # Convert annotations
-    convert_annotations(label_path, output_dir, half_side_bbox)
-    print(f"Conversion completed. Label files saved in {output_dir}")
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-lp', '--labels-path', default='labels.pkl')
@@ -75,4 +68,5 @@ if __name__ == "__main__":
     cfg = CfgNode(new_allowed=True)
     cfg.merge_from_file(args.config)
 
-    main(cfg, args.labels_path, cfg.model.input_size, args.output_path)
+    convert_annotations(args.labels_path, args.output_path, cfg.train.bbox_size)
+    print(f"Conversion completed. Label files saved in {args.output_path}")
