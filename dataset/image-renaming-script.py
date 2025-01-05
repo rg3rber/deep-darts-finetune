@@ -44,10 +44,10 @@ def get_image_creation_date(image_path):
         # Last resort: use current time
         return datetime.now()
 
-def rename_images_in_dataset(base_path='images'):
+def rename_images_in_dataset(base_path='images', start_id=1):
     """
     Rename images across all subfolders in the base path.
-    Images are renamed with format: dd_mm_yyyy_IMG_id.ext
+    Images are renamed with format: IMG_id_{folder_name}.ext
     """
     # Supported image extensions
     image_extensions = {'.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp', '.gif', '.webp'}
@@ -62,7 +62,9 @@ def rename_images_in_dataset(base_path='images'):
                 full_path = os.path.join(root, filename)
                 try:
                     creation_date = get_image_creation_date(full_path)
-                    image_info.append((full_path, creation_date))
+                    # Get the folder name (last directory in path)
+                    folder_name = os.path.basename(root)
+                    image_info.append((full_path, creation_date, folder_name))
                 except Exception as e:
                     print(f"Could not process {full_path}: {e}")
     
@@ -70,13 +72,13 @@ def rename_images_in_dataset(base_path='images'):
     image_info.sort(key=lambda x: x[1])
     
     # Second pass: rename images
-    for global_id, (image_path, creation_date) in enumerate(image_info, start=1):
+    for global_id, (image_path, creation_date, folder_name) in enumerate(image_info, start=start_id):
         # Extract file extension
         file_ext = os.path.splitext(image_path)[1]
         
-        # Create new filename
-        #new_filename = f"{creation_date.day:02d}_{creation_date.month:02d}_{creation_date.year}_IMG_{global_id}{file_ext}"
-        new_filename= f"no_crop_IMG_{global_id}{file_ext}"
+        # Create new filename with folder name
+        new_filename = f"IMG_{global_id}_{folder_name}{file_ext}"
+        
         # Get directory of the current image
         directory = os.path.dirname(image_path)
         
@@ -89,8 +91,7 @@ def rename_images_in_dataset(base_path='images'):
     
     print(f"Processed {len(image_info)} images.")
 
-# Usage
-def main(folder_path):
+def main(folder_path, start_id):
     # Specify the base path where your image folders are located
     base_path = folder_path
     
@@ -99,7 +100,7 @@ def main(folder_path):
     confirm = input("Are you sure you want to proceed? (yes/no): ").lower()
     
     if confirm == 'yes':
-        rename_images_in_dataset(base_path)
+        rename_images_in_dataset(base_path, start_id)
         print("Image renaming completed.")
     else:
         print("Operation cancelled.")
@@ -107,6 +108,7 @@ def main(folder_path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='rename images in a dataset')
     parser.add_argument('-f', '--folder-path', default='images', help='Path to the folder containing images')
+    parser.add_argument('-s', '--start-id', default=1, type=int, help='Starting ID for renaming')
     args = parser.parse_args()
     
-    main(args.folder_path)
+    main(args.folder_path, args.start_id)
