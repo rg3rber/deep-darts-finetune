@@ -96,7 +96,7 @@ def main(folder_path, start_id):
     base_path = folder_path
     
     # Confirm before running
-    print(f"This script will rename all images in {base_path} and its subfolders.")
+    print(f"This script will rename all images in {base_path} and its subfolders. Starting ID: {start_id}")
     confirm = input("Are you sure you want to proceed? (yes/no): ").lower()
     
     if confirm == 'yes':
