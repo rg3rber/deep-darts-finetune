@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from yacs.config import CfgNode as CN
 import argparse
-from find_board import find_board_vEllipse2
+from dataset.find_board import find_board_vEllipse2
 
 # used to convert dart angle to board number
 BOARD_DICT = {
@@ -75,7 +75,11 @@ def draw_ellipses(img, xy, num_pts=7):
 
 def get_circle(xy):
     c = np.mean(xy[:4], axis=0)
+    if np.isnan(c).any():  # Check for NaN values
+        return None, None
     r = np.mean(np.linalg.norm(xy[:4] - c, axis=-1))
+    if np.isnan(r):  # Check for NaN radius
+        return None, None
     return c, r
 
 
@@ -89,14 +93,16 @@ def board_radii(r_d, cfg):
 
 def draw_circles(img, xy, cfg, color=(255, 255, 255)):
     c, r_d = get_circle(xy)  # double radius
+    if c is None or r_d is None:  # Skip drawing if invalid values
+        return img
     r_t, r_ob, r_ib, w_dt = board_radii(r_d, cfg)
+    center = (int(round(c[0])), int(round(c[1])))
     for r in [r_d, r_d - w_dt, r_t, r_t - w_dt, r_ib, r_ob]:
-        cv2.circle(img, (round(c[0]), round(c[1])), round(r), color)
+        cv2.circle(img, center, int(r), color)
     return img
 
 
 def transform(xy, img=None, angle=9, M=None):
-
     if xy.shape[-1] == 3:
         has_vis = True
         vis = xy[:, 2:]
@@ -440,7 +446,7 @@ if __name__ == '__main__':
     import sys
     sys.path.append('../../')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--img-folder', default='d2_04_05_2020')
+    parser.add_argument('-f', '--img-folder', default='d3_25_12_2024_easy1')
     parser.add_argument('-s', '--scale', type=float, default=0.5)
     parser.add_argument('-d', '--draw-circles', action='store_true')
     args = parser.parse_args()
