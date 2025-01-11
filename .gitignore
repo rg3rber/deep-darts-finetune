@@ -6,4 +6,5 @@ dataset/cropped_images/800/d2_*
 models/*/preds/
 dataset/boards/
 removed_for_renaming/
+dataset/visualizations/
 *.zip

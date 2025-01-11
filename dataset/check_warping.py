@@ -20,7 +20,7 @@ def draw_warped(img, xy, cfg, circles=True, score=True, color=(255, 255, 0)):
         xy = xy.reshape((-1, 2))
         
     # Transform points and image
-    xy_warped, img_warped, _ = transform(xy.copy(), img.copy(), angle=0)
+    xy_warped, img_warped, _ = transform(xy.copy(), img.copy())
     
     h, w = img_warped.shape[:2]
     if np.mean(xy_warped) < 1:
