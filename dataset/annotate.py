@@ -330,7 +330,8 @@ def get_bounding_box_old(img_path, scale=0.2):
 
 def main(cfg, folder, scale, draw_circles, dart_score=True):
     global xy, img_copy
-    img_dir = osp.join("../", cfg.data.path, 'images', folder)
+    #img_dir = osp.join("../", cfg.data.path, 'images', folder)
+    img_dir = folder
     imgs = sorted(os.listdir(img_dir))
     annot_path = osp.join("../", cfg.data.path, 'annotations', folder + '.pkl')
     if osp.isfile(annot_path):
@@ -433,6 +434,7 @@ def main(cfg, folder, scale, draw_circles, dart_score=True):
                 annot.at[idx, 'xy'] = xy
                 annot.at[idx, 'bbox'] = bbox
                 annot.to_pickle(annot_path)
+                print('Saved keypoints for {}'.format(a['img_name']))
                 i += 1
                 break
 

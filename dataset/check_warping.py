@@ -90,7 +90,8 @@ def create_side_by_side(img1, img2, img_name):
     return combined
 
 def main(cfg, folder, scale, draw_circles, dart_score=True):
-    img_dir = osp.join("../", cfg.data.path, 'images', folder)
+    #img_dir = osp.join("../", cfg.data.path, 'images', folder)
+    img_dir = "boards/board_angles"
     imgs = sorted(os.listdir(img_dir))
     annot_path = osp.join("../", cfg.data.path, 'annotations', folder + '.pkl')
     

@@ -38,8 +38,10 @@ if __name__ == '__main__':
         print('Read path:', read_prefix)
         print('Write path:', write_prefix)
         
-        img_paths = [osp.join(read_prefix, folder, name) for (folder, name) in zip(data.img_folder, data.img_name)]
-        write_paths = [osp.join(write_prefix, folder, name) for (folder, name) in zip(data.img_folder, data.img_name)]
+        #img_paths = [osp.join(read_prefix, folder, name) for (folder, name) in zip(data.img_folder, data.img_name)]
+        #write_paths = [osp.join(write_prefix, folder, name) for (folder, name) in zip(data.img_folder, data.img_name)]
+        img_paths = [osp.join(read_prefix, name) for name in data.img_name]
+        write_paths = [osp.join(write_prefix, name) for name in data.img_name]
         
         bboxes = data.bbox.values
         sizes = [size for _ in range(len(bboxes))]
