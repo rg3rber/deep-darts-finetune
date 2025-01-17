@@ -7,4 +7,6 @@ models/*/preds/
 dataset/boards/
 removed_for_renaming/
 dataset/visualizations/
+dataset/hough_center/
+dataset/hough_whole_board/
 *.zip
