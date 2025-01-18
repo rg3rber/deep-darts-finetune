@@ -4,8 +4,15 @@ import argparse
 import os
 import os.path as osp
 import random
+from random import sample
 
-
+class Ellipse:
+    def __init__(self):
+        self.center = None # (x, y)
+        self.centerFloat = None # (x, y)
+        self.axes = None # (width, height) = (b, a)=(minor,major)
+        self.axesFloat = None # (b,a)
+        self.angle = None # angle in degrees
 
 def find_board_vEllipse2(img_path):
     img = cv2.imread(img_path)
@@ -40,157 +47,110 @@ def find_board_vEllipse2(img_path):
     red_binary = otsu_thresholding(red_mask)
     green_binary = otsu_thresholding(green_mask) #comparing red vs green
 
-    resizeEllipse, scale_factor_ellipse = proportionalResize(binary, 1000)
-    print("scale factor: ", scale_factor_ellipse)
-    largestEllipse = findEllipse(resizeEllipse, img_path)
+    resizeMasked, scale_factor_ellipse = proportionalResize(binary, 1000)
+
+    detectedEllipse = Ellipse()
+    detectedEllipse.centerFloat, detectedEllipse.axesFloat, detectedEllipse.angle = findEllipse(resizeMasked, img_path)
+    detectedEllipse.center = (int(detectedEllipse.centerFloat[0]), int(detectedEllipse.centerFloat[1]))
+    detectedEllipse.axes = (int(detectedEllipse.axesFloat[0]), int(detectedEllipse.axesFloat[1]))
     
-    if largestEllipse is None:
+    if detectedEllipse is None:
         print("No ellipse found.")
         return None
-    ellipseCenter, axes, angle = largestEllipse # (x,y), axes=(b,a) where b is minor axis and a major axis, angle, honestly this is just crappy approximation the angle is useless
-
-    rescaled_ellipseCenter_float = (ellipseCenter[0]/scale_factor_ellipse, ellipseCenter[1]/scale_factor_ellipse)
-    rescaled_ellipseCenter_int = (int(ellipseCenter[0]/scale_factor_ellipse), int(ellipseCenter[1]/scale_factor_ellipse))
-    rescaled_axes = (int(axes[0]/scale_factor_ellipse), int(axes[1]/scale_factor_ellipse)) # long and short axes
-
-    inferred_radius = int(np.mean(rescaled_axes)/2) # mean of long and short axes
     
-    bbox = getSquareBboxForEllipse(rescaled_ellipseCenter_float, rescaled_axes, h, w) # bbox for cropping on the board with random buffer (0.32-0.35)
-    exact_bbox = getSquareBboxForEllipse(rescaled_ellipseCenter_float, rescaled_axes, h, w, 0) # bbox for cropping on the board with no buffer
+    resizedEllipse = resize_ellipse(scale_factor_ellipse, detectedEllipse)
+
+    inferred_radius = int(np.mean(resizedEllipse.axesFloat)/2) # mean of long and short axes
+    
+    bbox = getSquareBboxForEllipse(resizedEllipse.centerFloat, resizedEllipse.axesFloat, h, w) # bbox for cropping on the board with random buffer (0.32-0.35)
+    approx_full_board_crop = getSquareBboxForEllipse(resizedEllipse.centerFloat, resizedEllipse.axesFloat, h, w, 0.32) # bbox for cropping on the board including the number wire with no buffer
 
     """ Find Image Center using red mask bullseye """
     
-    exact_bbox_length = int((exact_bbox[1][0] - exact_bbox[0][0])) # the 451mm diameter of the board including the number wire
-    bullseye_bounding_box_length = int((exact_bbox[1][0] - exact_bbox[0][0])/5)
-    hough_bounding_box_margin = int((exact_bbox[1][0] - exact_bbox[0][0])/3)
-    crop_imgToBull = cv2.getRectSubPix(img, (hough_bounding_box_margin, hough_bounding_box_margin), rescaled_ellipseCenter_float)
-    crop_imgToBBox = cv2.getRectSubPix(img, (exact_bbox_length, exact_bbox_length), rescaled_ellipseCenter_float)
-    
-    #top_crop_toBull = crop_imgToBull[0:int(hough_bounding_box_margin*0.55), 0:hough_bounding_box_margin] # top 55%. careful crop is y, x
-    top_crop = crop_imgToBBox[0:int(exact_bbox_length*0.55), 0:exact_bbox_length]
-    #lower_crop_toBull = crop_imgToBull[int(hough_bounding_box_margin*0.45):hough_bounding_box_margin, 0:hough_bounding_box_margin]
-    lower_crop = crop_imgToBBox[int(exact_bbox_length*0.45):exact_bbox_length, 0:exact_bbox_length]
+    approx_bbox_length = (approx_full_board_crop[1][0] - approx_full_board_crop[0][0]) # the 451mm diameter of the board 
+    bullseye_bounding_box_length = int((approx_full_board_crop[1][0] - approx_full_board_crop[0][0])/5)
+    hough_bounding_box_margin = int((approx_full_board_crop[1][0] - approx_full_board_crop[0][0])/3)
+    crop_imgToBull = cv2.getRectSubPix(img, (hough_bounding_box_margin, hough_bounding_box_margin), resizedEllipse.centerFloat)
 
-    crop_red_binary_toBullseye = cv2.getRectSubPix(red_binary, (bullseye_bounding_box_length, bullseye_bounding_box_length), rescaled_ellipseCenter_float)
+    crop_imgToBBox = cv2.getRectSubPix(img, (approx_bbox_length, approx_bbox_length), resizedEllipse.centerFloat)
+
+    #top_crop_toBull = crop_imgToBull[0:int(hough_bounding_box_margin*0.55), 0:hough_bounding_box_margin] # top 55%. careful crop is y, x
+    top_crop = crop_imgToBBox[0:int(approx_bbox_length*0.55), 0:approx_bbox_length]
+    #lower_crop_toBull = crop_imgToBull[int(hough_bounding_box_margin*0.45):hough_bounding_box_margin, 0:hough_bounding_box_margin]
+    lower_crop = crop_imgToBBox[int(approx_bbox_length*0.45):approx_bbox_length, 0:approx_bbox_length]
+
+    crop_red_binary_toBullseye = cv2.getRectSubPix(red_binary, (bullseye_bounding_box_length, bullseye_bounding_box_length), resizedEllipse.centerFloat)
     #resize_cropToBullseye, scale_factor_red_bullseye = proportionalResize(crop_red_binary_toBullseye, 480)
 
     #contours_cropped, board_center, radius = find_boardCenterHough(resize_crop_imageToEllipse) #find_boardCenter(resize_crop_imageToEllipse)
     board_center_color, center_axes, center_angle = workingfindEllipse(crop_red_binary_toBullseye)
-    remapped_board_center_color = (int(board_center_color[0]+rescaled_ellipseCenter_float[0]-bullseye_bounding_box_length/2), int(board_center_color[1] + rescaled_ellipseCenter_float[1]-bullseye_bounding_box_length/2))
+    remapped_board_center_color = (board_center_color[0]+resizedEllipse.centerFloat[0]-bullseye_bounding_box_length/2, board_center_color[1] + resizedEllipse.centerFloat[1]-bullseye_bounding_box_length/2)
+    remapped_board_center_color_Int= (int(remapped_board_center_color[0]), int(remapped_board_center_color[1]))
+    print("board center color = ", remapped_board_center_color_Int)
 
+    """ find exact ellipse using red? mask """
 
-    """ find exact ellipse using red mask """
-    
-    red_resize, red_scale_factor = proportionalResize(green_binary, 1000)
-    board_center_in_red_mask = (int(ellipseCenter[0]), int(ellipseCenter[1]))
-    ellipse_in_samples = find_furthest_intersections(red_resize, board_center_in_red_mask, axes, 360)
-    ellipse_in_red = fit_ellipse_to_points(ellipse_in_samples, center=board_center_in_red_mask, known_axes=None)
+    red_cropToBoard = cv2.getRectSubPix(red_binary, (approx_bbox_length, approx_bbox_length), resizedEllipse.centerFloat)
+    red_cropToBoard_center = (approx_bbox_length/2, approx_bbox_length/2)
 
-    if ellipse_in_red is None:
+    ellipse_samples = find_furthest_intersections(red_cropToBoard, red_cropToBoard_center, resizedEllipse.axesFloat, 180) # use approximate ellipse center and axes as reference to find intersections
+    #ellipse_samples = np.append(ellipse_samples, np.array([[[0,0]]]), axis=0).astype(np.float32)
+
+    redEllipse = fit_ellipse_ransac(ellipse_samples, image_size=(h,w)) # ransac to be robust to outliers
+
+    if redEllipse is None:
         print("No ellipse found in red mask.")
         return None
     
-    redEllipseCenter, redAxes, red_Angle = ellipse_in_red
-    red_rescaled_ellipseCenter_float = (redEllipseCenter[0]/red_scale_factor, redEllipseCenter[1]/red_scale_factor)
-    red_rescaled_ellipseCenter_int = (int(redEllipseCenter[0]/red_scale_factor), int(redEllipseCenter[1]/red_scale_factor))
-    red_rescaled_axes = (int(redAxes[0]/red_scale_factor), int(redAxes[1]/red_scale_factor))
-    cv2.ellipse(img, ellipse_in_red, (255, 0, 255), 2)
-    cv2.circle(img, remapped_board_center_color, 5, (255, 0, 255), -1)
-    for point in ellipse_in_samples:
+    remapped_redEllipse = Ellipse()
+    remapped_redEllipse.centerFloat = (redEllipse.center[0]+resizedEllipse.centerFloat[0]-approx_bbox_length/2, redEllipse.center[1]+resizedEllipse.centerFloat[1]-approx_bbox_length/2)
+    remapped_redEllipse.axesFloat = redEllipse.axesFloat
+    remapped_redEllipse.angle = redEllipse.angle
+    remapped_redEllipse.center = (int(remapped_redEllipse.centerFloat[0]), int(remapped_redEllipse.centerFloat[1]))
+    remapped_redEllipse.axes = (int(remapped_redEllipse.axesFloat[0]), int(remapped_redEllipse.axesFloat[1]))
+
+    cv2.ellipse(img, (resizedEllipse.center, resizedEllipse.axes, resizedEllipse.angle), (0, 255, 0), 1)
+    cv2.ellipse(img, (remapped_redEllipse.centerFloat, remapped_redEllipse.axesFloat, resizedEllipse.angle), (255, 0, 255), 2)
+    
+    cv2.circle(img, remapped_board_center_color_Int, 5, (255, 0, 255), -1)
+
+    for point in ellipse_samples:
+        (x, y) = point[0]
+        cv2.circle(img, (int(x+resizedEllipse.centerFloat[0]-approx_bbox_length/2), int(y+resizedEllipse.centerFloat[1]-approx_bbox_length/2)), 1, (255, 0, 0), -1)
+
+
+    cv2.imwrite(osp.join("boards/board_angles/green_and_red", "drawn_"+img_name), img)
+    print("wrote img: boards/board_angles/green_and_red", "drawn_" + img_name)
+
+    return None
+
+    """ # why not use the ellipse found in the first step?
+    red_resize, red_scale_factor = proportionalResize(red_binary, 1000)
+    cv2.imshow("red", red_resize)
+    cv2.waitKey()
+    return None
+    ellipse_samples = find_furthest_intersections(red_resize, detectedEllipse.centerFloat, detectedEllipse.axesFloat, 720) # use approximate ellipse center and axes as reference to find intersections
+    redEllipse = fit_ellipse_to_points(ellipse_samples, center=None, known_axes=None) # before center was board_center_in_red_mask
+
+    if redEllipse is None:
+        print("No ellipse found in red mask.")
+        return None
+    
+    resizedRedEllipse = resize_ellipse(red_scale_factor, redEllipse)
+    
+    cv2.ellipse(img, (resizedRedEllipse.center, resizedRedEllipse.axes, resizedRedEllipse.angle), (255, 0, 255), 2)
+    cv2.circle(img, remapped_board_center_color_Int, 5, (255, 0, 255), -1)
+    for point in ellipse_samples:
         (x, y) = point[0]
         cv2.circle(img, (int(x/red_scale_factor), int(y/red_scale_factor)), 1, (255, 0, 0), -1)
-    cv2.imwrite(osp.join("boards/board_angles/green_ellipse", "green_ellipse_"+img_name), img)
-    print("wrote img: boards/board_angles/green_ellipse/green_ellipse" + img_name)
+    cv2.imwrite(osp.join("boards/board_angles/red_ellipse", "New_red_ellipse"+img_name), img)
+    print("wrote img: boards/board_angles/green_ellipse/green_ellipse" + img_name) """
 
     return None
 
     """ Hough lines to find segment lines """
 
-    vertical_zone_top =  (360-17, 360), (0, 17) # left and right
-    vertical_zone_bottom = (180-17, 180), (180, 180+17)
-    horizontal_zone_top = (270, 270+17), (90-17, 90)
-    horizontal_zone_bottom = (270-17, 270), (90, 90+17)
-    #vertical_zone = (0,360), (0, 360)
-    #horizontal_zone = (0,360), (0, 360)
-    lines_of_interest_vertical = [] # [(intersection: 5,20), (intersection: 20, 1), (intersection: 17,3), (intersection: 3, 19)]
-    lines_of_interes_horizontal = [] # [(intersection: 11,14), (intersection: 6,13), (intersection: 8.11), (intersection: 6,10)] 
-    top_right = None # line between 20 and 1
-    bottom_left = None # line between 
-    bottom_right = None
-
-    top_segment_lines_cartesian, top_segment_lines_polar = find_sector_lines(top_crop, angle, top=True) # return 
-    print("top segment lines = ", len(top_segment_lines_cartesian))
-
-    lower_segment_lines_cartesian, lower_segment_lines_polar = find_sector_lines(lower_crop, angle, top=False)
-
-    """ only draw lines in the vertical and horizontal zones """
-
-    for i, line in enumerate(top_segment_lines_polar): # only take the lines in the vertical and horizontal zones
-        rho, theta = line
-        print("line i: ", i, "theta = ", np.rad2deg(theta))
-        if np.deg2rad(vertical_zone_top[0][0]) <= theta < np.deg2rad(vertical_zone_top[0][1]):
-            line = top_segment_lines_cartesian[i]
-            x1,y1,x2,y2 = line[0][0], line[0][1], line[1][0], line[1][1]
-            x1 = x1+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y1 = y1+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            x2 = x2+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y2 = y2+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            lines_of_interest_vertical.append([(x1, y1), (x2, y2)])
-            cv2.line(img,(x1,y1),(x2,y2),(255,0,0), 1)
-        elif np.deg2rad(vertical_zone_top[1][0]) <= theta < np.deg2rad(vertical_zone_top[1][1]):
-            line = top_segment_lines_cartesian[i]
-            x1,y1,x2,y2 = line[0][0], line[0][1], line[1][0], line[1][1]
-            x1 = x1+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y1 = y1+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            x2 = x2+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y2 = y2+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            lines_of_interest_vertical.append([(x1, y1), (x2, y2)])
-            cv2.line(img,(x1,y1),(x2,y2),(255,0,0), 1)
-    
-    cal1 = line_ellipse_intersection(rescaled_ellipseCenter_int, rescaled_axes, angle, lines_of_interest_vertical[0])
-    print("cal1= ", cal1)
-    inter_p1 = (int(cal1[0][0]), int(cal1[0][1]))
-    inter_p2 = (int(cal1[1][0]), int(cal1[1][1]))
-    print("intersections = ", inter_p1, inter_p2)
-    cv2.circle(img, inter_p1, 5, (0, 255, 0), -1)
-    cv2.circle(img, inter_p2, 5, (0, 255, 0), -1)
-    cv2.ellipse(img, (rescaled_ellipseCenter_int, rescaled_axes, angle), (255, 0, 255), 2) #draw the ellipse
-    demo_resize = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
-    cv2.imshow("intersections", demo_resize)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
-    return None
-
-    
-    """ draw all lines:
-    for i, line in enumerate(top_segment_lines_polar): # only take the lines in the vertical and horizontal zones
-        rho, theta = line
-        if np.deg2rad(vertical_zone[0][0]) < theta < np.deg2rad(vertical_zone[0][1]) or np.deg2rad(vertical_zone[1][0]) < theta < np.deg2rad(vertical_zone[1][1]) or np.deg2rad(horizontal_zone[0][0]) < theta < np.deg2rad(horizontal_zone[0][1]) or np.deg2rad(horizontal_zone[1][0]) < theta < np.deg2rad(horizontal_zone[1][1]):
-            line = top_segment_lines_cartesian[i]
-            x1,y1,x2,y2 = line[0][0], line[0][1], line[1][0], line[1][1]
-            x1 = x1+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y1 = y1+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            x2 = x2+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y2 = y2+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            cv2.line(img,(x1,y1),(x2,y2),(255,0,0),1)
-
-    lower_segment_lines_cartesian, lower_segment_lines_polar = find_sector_lines(lower_crop, angle, top=False)
-    print("lower segment lines = ", len(lower_segment_lines_cartesian))
-    for i, line in enumerate(lower_segment_lines_polar): 
-        rho, theta = line
-        if np.deg2rad(vertical_zone[0][0]) < theta < np.deg2rad(vertical_zone[0][1]) or np.deg2rad(vertical_zone[1][0]) < theta < np.deg2rad(vertical_zone[1][1]) or np.deg2rad(horizontal_zone[0][0]) < theta < np.deg2rad(horizontal_zone[0][1]) or np.deg2rad(horizontal_zone[1][0]) < theta < np.deg2rad(horizontal_zone[1][1]):
-            line = lower_segment_lines_cartesian[i]
-            x1,y1,x2,y2 = line[0][0], line[0][1], line[1][0], line[1][1]
-            x1 = x1+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y1 = y1+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2+exact_bbox_length*0.45)
-            x2 = x2+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y2 = y2+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2+exact_bbox_length*0.45)
-            cv2.line(img,(x1,y1),(x2,y2),(0,255,0),1) 
-    """
-
-    
-
-
+    compute_cal_pts(ellipse_in_red, approx_full_board_crop, img)
 
     #if contours_cropped is None or board_center is None or radius is None:
     if board_center_color is None:
@@ -226,8 +186,8 @@ def find_board_vEllipse2(img_path):
     #resized_ellipse = (ellipseCenter[0]/scale_factor, ellipseCenter[1]/scale_factor), (axes[0]/scale_factor, axes[1]/scale_factor), angle
     
 
-    rescaled_axes = (int(axes[0]/scale_factor_ellipse), int(axes[1]/scale_factor_ellipse))
-    print("rotated rectangle = ", ellipseCenter, axes, angle)
+    resizedEllipse.axesFloat = (int(resizedEllipse.axesFloat[0]/scale_factor_ellipse), int(resizedEllipse.axesFloat[1]/scale_factor_ellipse))
+    print("rotated rectangle = ", resizedEllipse.centerFloat, resizedEllipse.axesFloat, resizedEllipse.angle)
 
     """ Rectangle corners: not working for now
 
@@ -238,7 +198,7 @@ def find_board_vEllipse2(img_path):
     cv2.circle(img, bottom_right, 5, (0, 255, 0), -1)
     cv2.putText(img, "bottom right", bottom_right, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2, cv2.LINE_AA)
     """
-    rotatedRect = cv2.RotatedRect(rescaled_ellipseCenter_int, rescaled_axes, angle)
+    rotatedRect = cv2.RotatedRect(resizedEllipse.center, resizedEllipse.axesFloat, resizedEllipse.angle)
     vertices = cv2.boxPoints(rotatedRect)
     vertices = np.int0(vertices)
     for i in range(4):
@@ -250,9 +210,9 @@ def find_board_vEllipse2(img_path):
 
     """ Draw ellipse and points on it: ----------------------------------------- """
     
-    cv2.ellipse(img, (rescaled_ellipseCenter_int, rescaled_axes, angle), (255, 0, 255), 2) #draw the ellipse
+    cv2.ellipse(img, (resizedEllipse.center, resizedEllipse.axesFloat, resizedEllipse.angle), (255, 0, 255), 2) #draw the ellipse
 
-    ellipsePoints = get_ellipse_axis_intersections(rescaled_ellipseCenter_int, rescaled_axes, angle)
+    ellipsePoints = get_ellipse_axis_intersections(resizedEllipse.center, resizedEllipse.axesFloat, resizedEllipse.angle)
     ellipseTop, elliseBottom, ellipseLeft, ellipseRight = ellipsePoints
     cv2.circle(img, (int(ellipseTop[0]), int(ellipseTop[1])), 2, (0, 255, 0), -1)
     #cv2.putText(img, "EllipseTop", (int(ellipseTop[0]), int(ellipseTop[1])), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 3, cv2.LINE_AA)
@@ -286,6 +246,76 @@ def find_board_vEllipse2(img_path):
 
     return reformatted_bbox
 
+def resize_ellipse(scale_factor, ellipse):
+    resizedEllipse = Ellipse()
+    resizedEllipse.center = (int(ellipse.centerFloat[0]/scale_factor), int(ellipse.centerFloat[1]/scale_factor))
+    resizedEllipse.centerFloat = (ellipse.centerFloat[0]/scale_factor, ellipse.centerFloat[1]/scale_factor)
+    resizedEllipse.axes = (int(ellipse.axesFloat[0]/scale_factor), int(ellipse.axesFloat[1]/scale_factor))
+    resizedEllipse.axesFloat = (ellipse.axesFloat[0]/scale_factor, ellipse.axesFloat[1]/scale_factor)
+    resizedEllipse.angle = ellipse.angle
+    return resizedEllipse
+
+def compute_cal_pts(ellipse, bbox, img):
+
+    cal_pts = None
+    
+    vertical_zone_top =  (360-17, 360), (0, 17) # left and right
+    vertical_zone_bottom = (180-17, 180), (180, 180+17)
+    horizontal_zone_top = (270, 270+17), (90-17, 90)
+    horizontal_zone_bottom = (270-17, 270), (90, 90+17)
+    #vertical_zone = (0,360), (0, 360)
+    #horizontal_zone = (0,360), (0, 360)
+    lines_of_interest_vertical = [] # [(intersection: 5,20), (intersection: 20, 1), (intersection: 17,3), (intersection: 3, 19)]
+    lines_of_interes_horizontal = [] # [(intersection: 11,14), (intersection: 6,13), (intersection: 8.11), (intersection: 6,10)] 
+    top_right = None # line between 20 and 1
+    bottom_left = None # line between 
+    bottom_right = None
+
+    top_segment_lines_cartesian, top_segment_lines_polar = find_sector_lines(top_crop, angle, top=True) # return 
+    print("top segment lines = ", len(top_segment_lines_cartesian))
+
+    lower_segment_lines_cartesian, lower_segment_lines_polar = find_sector_lines(lower_crop, angle, top=False)
+
+    """only draw lines in the vertical and horizontal zones """
+
+    for i, line in enumerate(top_segment_lines_polar): # only take the lines in the vertical and horizontal zones
+        rho, theta = line
+        print("line i: ", i, "theta = ", np.rad2deg(theta))
+        if np.deg2rad(vertical_zone_top[0][0]) <= theta < np.deg2rad(vertical_zone_top[0][1]):
+            line = top_segment_lines_cartesian[i]
+            x1,y1,x2,y2 = line[0][0], line[0][1], line[1][0], line[1][1]
+            x1 = x1+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
+            y1 = y1+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
+            x2 = x2+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
+            y2 = y2+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
+            lines_of_interest_vertical.append([(x1, y1), (x2, y2)])
+            cv2.line(img,(x1,y1),(x2,y2),(255,0,0), 1)
+        elif np.deg2rad(vertical_zone_top[1][0]) <= theta < np.deg2rad(vertical_zone_top[1][1]):
+            line = top_segment_lines_cartesian[i]
+            x1,y1,x2,y2 = line[0][0], line[0][1], line[1][0], line[1][1]
+            x1 = x1+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
+            y1 = y1+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
+            x2 = x2+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
+            y2 = y2+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
+            lines_of_interest_vertical.append([(x1, y1), (x2, y2)])
+            cv2.line(img,(x1,y1),(x2,y2),(255,0,0), 1)
+    
+    cal1, cal4 = line_ellipse_intersection(rescaled_ellipseCenter_int, rescaled_axes, angle, lines_of_interest_vertical[0]) # top crop
+    cal2, cal3 = line_ellipse_intersection(rescaled_ellipseCenter_int, rescaled_axes, angle, lines_of_interest_vertical[1]) # lower crop
+    print("cal1= ", cal1)
+    inter_p1 = (int(cal1[0][0]), int(cal1[0][1]))
+    inter_p2 = (int(cal1[1][0]), int(cal1[1][1]))
+    print("intersections = ", inter_p1, inter_p2)
+    cv2.circle(img, inter_p1, 5, (0, 255, 0), -1)
+    cv2.circle(img, inter_p2, 5, (0, 255, 0), -1)
+    cv2.ellipse(img, (rescaled_ellipseCenter_int, rescaled_axes, angle), (255, 0, 255), 2) #draw the ellipse
+    demo_resize = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
+    cv2.imshow("intersections", demo_resize)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+ 
+    return cal_pts
+
 def find_furthest_intersections(mask, 
                               center,
                               axes,
@@ -295,18 +325,21 @@ def find_furthest_intersections(mask,
     
     Args:
         mask: Binary image where arcs are white (255) on black background (0)
-        center: (x, y) coordinate tuple of the ellipse center
+        center: (x, y) coordinate tuple of the ellipse center as floats
         num_angles: Number of angles to sample around the center
         
     Returns:
         Array of points shaped (N, 1, 2) ready for cv2.fitEllipse
     """
     height, width = mask.shape
-    center_x, center_y = center
-    
-    # Maximum possible radius
-    max_radius = int(np.max(axes)/2*1.05)
-    min_radius = int(np.min(axes)/2*0.9)
+    opened = cv2.morphologyEx(mask, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))) # remove noise
+    closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))) # smooth sections
+    closed = otsu_thresholding(closed) # threshold again to get rid of noise
+ 
+    # possible radii
+    max_radius = int(np.max(axes)/2*1.1) # 10 percent as buffer
+    min_radius = int(np.min(axes)/2*0.9) # minimum 90 percent of the minor axis
+
     intersection_points = []
     
     # Sample angles
@@ -314,19 +347,19 @@ def find_furthest_intersections(mask,
         theta = np.deg2rad(angle)
         
         # Create line mask from center to edge at this angle
-        end_x = center_x + int(max_radius * np.cos(theta))
-        end_y = center_y + int(max_radius * np.sin(theta))
+        end_x = int(center[0] + max_radius * np.cos(theta))
+        end_y = int(center[1] + max_radius * np.sin(theta))
         
-        line_mask = np.zeros_like(mask)
-        cv2.line(line_mask, (center_x, center_y), (end_x, end_y), 255, 1)
-        
+        line_mask = np.zeros_like(closed)
+        cv2.line(line_mask, (int(center[0]), int(center[1])), (end_x, end_y), 255, 1)
+
         # Find intersections with arc segments
-        intersection = cv2.bitwise_and(mask, line_mask)
+        intersection = cv2.bitwise_and(closed, line_mask)
         y_ints, x_ints = np.nonzero(intersection)
         
         if len(x_ints) > 0:
             # Calculate distances from center to intersection points
-            distances = np.sqrt((x_ints - center_x)**2 + (y_ints - center_y)**2)
+            distances = np.sqrt((x_ints - center[0])**2 + (y_ints - center[1])**2)
             # Get furthest point
             max_idx = np.argmax(distances)
             if(distances[max_idx] > min_radius):
@@ -348,6 +381,8 @@ def fit_ellipse_to_points(points,
     Returns:
         OpenCV ellipse parameters ((x,y), (width,height), angle)
     """
+    returnEllipse = Ellipse()
+
     if len(points) < 5:
         raise ValueError("Need at least 5 points to fit ellipse")
     
@@ -362,7 +397,117 @@ def fit_ellipse_to_points(points,
     if known_axes is not None:
         ellipse = (ellipse[0], known_axes, ellipse[2])
     
-    return ellipse
+    returnEllipse.center = (int(ellipse[0][0]), int(ellipse[0][1]))
+    returnEllipse.axes = (int(ellipse[1][0]), int(ellipse[1][1]))
+    returnEllipse.centerFloat = ellipse[0]
+    returnEllipse.axesFloat = ellipse[1]
+    returnEllipse.angle = ellipse[2]
+    return returnEllipse
+
+def fit_ellipse_ransac(points, image_size, iterations=100, min_inliers=10):
+    """
+    Fit ellipse to points using RANSAC to handle outliers.
+    
+    Args:
+        points: Array of points shaped (N, 1, 2)
+        image_size: Tuple of (width, height) of the image
+        iterations: Number of RANSAC iterations
+        min_inliers: Minimum number of inliers required for a valid fit
+        
+    Returns:
+        Best fitting Ellipse object or None if no valid fit found
+    """
+    if len(points) < 5:
+        raise ValueError("Need at least 5 points to fit ellipse")
+    
+    # Set threshold as fraction of image size
+    threshold = max(image_size) * 0.001
+    
+    best_ellipse = None
+    max_inliers = 0
+    sample_size = max(len(points) // 4, 6)
+    points = points.reshape(-1, 2)  # Reshape to (N, 2) for easier handling
+    
+    def point_to_ellipse_distance(point, ellipse):
+        """
+        Calculate exact distance from point to ellipse using the ellipse equation.
+        Returns the absolute difference between 1 and the evaluation of the point
+        in the normalized ellipse equation.
+        """
+        center = ellipse[0]
+        axes = ellipse[1]
+        angle = ellipse[2]
+        
+        # Convert angle to radians
+        angle_rad = np.deg2rad(angle)
+        cos_angle = np.cos(angle_rad)
+        sin_angle = np.sin(angle_rad)
+        
+        # Translate point to origin
+        dx = point[0] - center[0]
+        dy = point[1] - center[1]
+        
+        # Rotate point to align with ellipse axes
+        x_rot = dx * cos_angle + dy * sin_angle
+        y_rot = -dx * sin_angle + dy * cos_angle
+        
+        # Get semi-major and semi-minor axes
+        a = axes[0] / 2
+        b = axes[1] / 2
+        
+        # Evaluate ellipse equation: (x/a)^2 + (y/b)^2 = 1
+        # Distance will be |1 - result|
+        result = (x_rot/a)**2 + (y_rot/b)**2
+        
+        # Convert to pixel distance (approximate)
+        pixel_distance = abs(1 - np.sqrt(result)) * np.sqrt((a**2 + b**2)/2)
+        return pixel_distance
+    
+    all_indices = set(range(len(points)))
+    
+    for _ in range(iterations):
+        try:
+            # Randomly select 5 points (minimum needed for ellipse fitting)
+            sample_indices = set(sample(range(len(points)), sample_size))
+            sample_points = points[list(sample_indices)].reshape(-1, 1, 2)
+            print("sample points = ", sample_points)
+            
+            # Fit ellipse to sample
+            candidate = cv2.fitEllipse(sample_points)
+            
+            # Count inliers
+            non_sample_indices = all_indices - sample_indices
+            inlier_indices = set(i for i in non_sample_indices 
+                               if point_to_ellipse_distance(points[i], candidate) < threshold)
+            inliers = len(inlier_indices) + sample_size
+            # Update best solution if we found more inliers
+            if inliers > max_inliers and inliers >= min_inliers:
+                max_inliers = inliers
+                best_ellipse = candidate
+                if (inliers == 0.9*len(points)): # terminate early
+                    break
+                
+        except cv2.error:
+            # Skip if ellipse fitting fails for this sample
+            continue
+    
+    if best_ellipse is None:
+        return None
+        
+    # Create return object
+    returnEllipse = Ellipse()
+    returnEllipse.center = (int(best_ellipse[0][0]), int(best_ellipse[0][1]))
+    returnEllipse.axes = (int(best_ellipse[1][0]), int(best_ellipse[1][1]))
+    returnEllipse.centerFloat = best_ellipse[0]
+    returnEllipse.axesFloat = best_ellipse[1]
+    returnEllipse.angle = best_ellipse[2]
+
+
+    print("nr of points = ", len(points))
+    print("max inliers = ", max_inliers)
+    print("threshold = ", threshold)
+    
+    return returnEllipse
 
 def rotate_points(points: np.ndarray, angle_deg: float, center): # find ellipse line intersections pt 2
     """Rotate points around a center point by given angle in degrees."""
@@ -562,8 +707,9 @@ def find_sector_lines(img, angle, top=True):
     #print("img size = ", img_size)
 
     kernel = np.ones((5, 5), np.float32) / 25
-    blur = cv2.filter2D(img, -1, kernel)
-    h, s, value = cv2.split(blur)
+    #blur = cv2.filter2D(img, -1, kernel) dont blur image for houghlines
+
+    h, s, value = cv2.split(img)
     #cv2.imshow("value", value)
 
     ret, thresh = cv2.threshold(value, 140, 255, cv2.THRESH_BINARY_INV)
@@ -941,15 +1087,16 @@ def getSquareBboxForEllipse(center, axes, h, w, buffer=None):
     the same center as the ellipse and 25-35% larger than the ellipse
     buffer: optional parameter to set the bounding box to be buffer% larger than the ellipse
     """
+    print(axes)
     scale_factor = 1 + random.uniform(0.3, 0.35) # outer rim is 32% larger than the ellipse
     if buffer is not None:
         scale_factor = 1 + buffer
     long_axis = max(axes) * scale_factor # set the bounding box to be 25-35% larger than the ellipse
-   
-    top_left_corner = (max(0,int(center[0] - long_axis/2)), 
+    print(long_axis)
+    top_left_corner = (max(0, int(center[0] - long_axis/2)), 
                       max(0, int(center[1] - long_axis/2)))
     bottom_right_corner = (min(w, int(center[0] + long_axis/2)), 
-                          min(h,int(center[1] + long_axis/2)))
+                          min(h, int(center[1] + long_axis/2)))
     
     return (top_left_corner, bottom_right_corner)
 

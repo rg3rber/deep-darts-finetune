@@ -5,7 +5,7 @@ import os
 import os.path as osp
 import matplotlib.pyplot as plt
 
-def find_board_vEllipse2(img_path):
+def find_board_vEllipse2_outdated(img_path):
 
     img = cv2.imread(img_path)
     if img is None:
@@ -52,4 +52,4 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Code for Creating Bounding rotated boxes and ellipses for contours tutorial.')
     parser.add_argument('-i', '--input', help='Path to input image.', default='images/testboard.jpg')
     args = parser.parse_args()
-    find_board_vEllipse2(args.input)
+    find_board_vEllipse2_outdated(args.input)
