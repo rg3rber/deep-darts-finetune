@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from yacs.config import CfgNode as CN
 import argparse
-from find_board import find_board_vEllipse2
+from dataset.find_board import find_board_vEllipse2
 
 # used to convert dart angle to board number
 BOARD_DICT = {
@@ -330,8 +330,8 @@ def get_bounding_box_old(img_path, scale=0.2):
 
 def main(cfg, folder, scale, draw_circles, dart_score=True):
     global xy, img_copy
-    #img_dir = osp.join("../", cfg.data.path, 'images', folder)
-    img_dir = folder
+    img_dir = osp.join("../", cfg.data.path, 'images', folder)
+    #img_dir = folder
     imgs = sorted(os.listdir(img_dir))
     annot_path = osp.join("../", cfg.data.path, 'annotations', folder + '.pkl')
     if osp.isfile(annot_path):
@@ -391,7 +391,7 @@ def main(cfg, folder, scale, draw_circles, dart_score=True):
 
             if key == ord('m'):  # draw manual bounding box
                 idx = annot[(annot['img_name'] == a['img_name'])].index.values[0]
-                annot.at[idx, 'bbox'] = get_bounding_box_old(osp.join(img_dir, a['img_name']), scale)
+                annot.at[idx, 'bbox'] = get_bounding_box_old(osp.join(img_dir, a['img_name']), scale/2)
                 break
 
             if key == ord('.'):
@@ -449,7 +449,7 @@ if __name__ == '__main__':
     sys.path.append('../../')
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--img-folder', default='d3_25_12_2024_easy1')
-    parser.add_argument('-s', '--scale', type=float, default=0.5)
+    parser.add_argument('-s', '--scale', type=float, default=0.9)
     parser.add_argument('-d', '--draw-circles', action='store_true')
     args = parser.parse_args()
 
