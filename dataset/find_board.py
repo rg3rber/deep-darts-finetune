@@ -86,7 +86,6 @@ def find_board_vEllipse2(img_path):
     board_center_color, center_axes, center_angle = workingfindEllipse(crop_red_binary_toBullseye)
     remapped_board_center_color = (board_center_color[0]+resizedEllipse.centerFloat[0]-bullseye_bounding_box_length/2, board_center_color[1] + resizedEllipse.centerFloat[1]-bullseye_bounding_box_length/2)
     remapped_board_center_color_Int= (int(remapped_board_center_color[0]), int(remapped_board_center_color[1]))
-    print("board center color = ", remapped_board_center_color_Int)
 
     """ find exact ellipse using red? mask """
 
@@ -114,15 +113,18 @@ def find_board_vEllipse2(img_path):
     
     cv2.circle(img, remapped_board_center_color_Int, 5, (255, 0, 255), -1)
 
-    for point in ellipse_samples:
-        (x, y) = point[0]
-        cv2.circle(img, (int(x+resizedEllipse.centerFloat[0]-approx_bbox_length/2), int(y+resizedEllipse.centerFloat[1]-approx_bbox_length/2)), 1, (255, 0, 0), -1)
+    cal_pts = compute_cal_pts(remapped_redEllipse, img)
 
+    for pt in cal_pts:
+        cv2.circle(img, (int(pt[0]), int(pt[1])), 5, (255, 0, 0), -1)
 
-    cv2.imwrite(osp.join("boards/board_angles/green_and_red", "drawn_"+img_name), img)
-    print("wrote img: boards/board_angles/green_and_red", "drawn_" + img_name)
+    cv2.line(img, (int(cal_pts[0][0]), int(cal_pts[0][1])), (int(cal_pts[1][0]), int(cal_pts[1][1])), (0, 255, 0), 2)
+    cv2.line(img, (int(cal_pts[2][0]), int(cal_pts[2][1])), (int(cal_pts[3][0]), int(cal_pts[3][1])), (0, 255, 0), 2)
 
-    return None
+    cv2.circle(img, remapped_board_center_color_Int, 5, (0, 255, 0), -1)
+    cv2.circle(img, remapped_redEllipse.center, 5, (255, 0, 255), -1)
+    cv2.imshow("Bounding box preview:", img)
+    cv2.waitKey()
 
     """ # why not use the ellipse found in the first step?
     red_resize, red_scale_factor = proportionalResize(red_binary, 1000)
@@ -146,15 +148,10 @@ def find_board_vEllipse2(img_path):
     cv2.imwrite(osp.join("boards/board_angles/red_ellipse", "New_red_ellipse"+img_name), img)
     print("wrote img: boards/board_angles/green_ellipse/green_ellipse" + img_name) """
 
-    return None
 
     """ Hough lines to find segment lines """
 
-    compute_cal_pts(ellipse_in_red, approx_full_board_crop, img)
 
-    #if contours_cropped is None or board_center is None or radius is None:
-    if board_center_color is None:
-        print("No board center found.")
     """  different approach try to rotate the red mask and find the ellipse --------------------- 
     else:
         resize_red, scale_factor_red = proportionalResize(red_binary, 1000)
@@ -184,10 +181,8 @@ def find_board_vEllipse2(img_path):
     
     #these lines are for visualization purposes only
     #resized_ellipse = (ellipseCenter[0]/scale_factor, ellipseCenter[1]/scale_factor), (axes[0]/scale_factor, axes[1]/scale_factor), angle
-    
 
     resizedEllipse.axesFloat = (int(resizedEllipse.axesFloat[0]/scale_factor_ellipse), int(resizedEllipse.axesFloat[1]/scale_factor_ellipse))
-    print("rotated rectangle = ", resizedEllipse.centerFloat, resizedEllipse.axesFloat, resizedEllipse.angle)
 
     """ Rectangle corners: not working for now
 
@@ -228,7 +223,7 @@ def find_board_vEllipse2(img_path):
     cv2.waitKey()
 
     """ draw the inferred circle: """
-    cv2.circle(img, remapped_board_center_color, 2, (255, 0, 255), -1)
+    #cv2.circle(img, remapped_board_center_color, 2, (255, 0, 255), -1)
     #cv2.circle(img, remapped_board_center_color, inferred_radius, (100, 100, 0), 5)
 
     """ writing image and text files: """
@@ -244,7 +239,7 @@ def find_board_vEllipse2(img_path):
         f.write("Ellipse Points: " + str(ellipsePoints) + "\n")
       """
 
-    return reformatted_bbox
+    return reformatted_bbox, remapped_redEllipse
 
 def resize_ellipse(scale_factor, ellipse):
     resizedEllipse = Ellipse()
@@ -255,66 +250,69 @@ def resize_ellipse(scale_factor, ellipse):
     resizedEllipse.angle = ellipse.angle
     return resizedEllipse
 
-def compute_cal_pts(ellipse, bbox, img):
+def compute_cal_pts(preciseEllipse, img): # compute cal pts
 
     cal_pts = None
+    h, w = img.shape[:2]
+    angle = preciseEllipse.angle
+
+    full_BoardBBox = getSquareBboxForEllipse(preciseEllipse.centerFloat, preciseEllipse.axesFloat, h, w, 0.32)
+    bbox_length = (full_BoardBBox[1][0] - full_BoardBBox[0][0]) # the 451mm diameter of the board 
+
+    crop_imgToBBox = cv2.getRectSubPix(img, (bbox_length, bbox_length), preciseEllipse.centerFloat)
+    top_crop = crop_imgToBBox[0:int(bbox_length*0.5), 0:bbox_length]
+    lower_crop = crop_imgToBBox[int(bbox_length*0.5):bbox_length, 0:bbox_length]
     
-    vertical_zone_top =  (360-17, 360), (0, 17) # left and right
-    vertical_zone_bottom = (180-17, 180), (180, 180+17)
-    horizontal_zone_top = (270, 270+17), (90-17, 90)
-    horizontal_zone_bottom = (270-17, 270), (90, 90+17)
-    #vertical_zone = (0,360), (0, 360)
-    #horizontal_zone = (0,360), (0, 360)
-    lines_of_interest_vertical = [] # [(intersection: 5,20), (intersection: 20, 1), (intersection: 17,3), (intersection: 3, 19)]
-    lines_of_interes_horizontal = [] # [(intersection: 11,14), (intersection: 6,13), (intersection: 8.11), (intersection: 6,10)] 
-    top_right = None # line between 20 and 1
-    bottom_left = None # line between 
-    bottom_right = None
-
-    top_segment_lines_cartesian, top_segment_lines_polar = find_sector_lines(top_crop, angle, top=True) # return 
-    print("top segment lines = ", len(top_segment_lines_cartesian))
-
-    lower_segment_lines_cartesian, lower_segment_lines_polar = find_sector_lines(lower_crop, angle, top=False)
-
-    """only draw lines in the vertical and horizontal zones """
-
-    for i, line in enumerate(top_segment_lines_polar): # only take the lines in the vertical and horizontal zones
-        rho, theta = line
-        print("line i: ", i, "theta = ", np.rad2deg(theta))
-        if np.deg2rad(vertical_zone_top[0][0]) <= theta < np.deg2rad(vertical_zone_top[0][1]):
-            line = top_segment_lines_cartesian[i]
-            x1,y1,x2,y2 = line[0][0], line[0][1], line[1][0], line[1][1]
-            x1 = x1+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y1 = y1+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            x2 = x2+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y2 = y2+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            lines_of_interest_vertical.append([(x1, y1), (x2, y2)])
-            cv2.line(img,(x1,y1),(x2,y2),(255,0,0), 1)
-        elif np.deg2rad(vertical_zone_top[1][0]) <= theta < np.deg2rad(vertical_zone_top[1][1]):
-            line = top_segment_lines_cartesian[i]
-            x1,y1,x2,y2 = line[0][0], line[0][1], line[1][0], line[1][1]
-            x1 = x1+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y1 = y1+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            x2 = x2+int(rescaled_ellipseCenter_float[0]-exact_bbox_length/2)
-            y2 = y2+int(rescaled_ellipseCenter_float[1]-exact_bbox_length/2)
-            lines_of_interest_vertical.append([(x1, y1), (x2, y2)])
-            cv2.line(img,(x1,y1),(x2,y2),(255,0,0), 1)
     
-    cal1, cal4 = line_ellipse_intersection(rescaled_ellipseCenter_int, rescaled_axes, angle, lines_of_interest_vertical[0]) # top crop
-    cal2, cal3 = line_ellipse_intersection(rescaled_ellipseCenter_int, rescaled_axes, angle, lines_of_interest_vertical[1]) # lower crop
-    print("cal1= ", cal1)
-    inter_p1 = (int(cal1[0][0]), int(cal1[0][1]))
-    inter_p2 = (int(cal1[1][0]), int(cal1[1][1]))
-    print("intersections = ", inter_p1, inter_p2)
-    cv2.circle(img, inter_p1, 5, (0, 255, 0), -1)
-    cv2.circle(img, inter_p2, 5, (0, 255, 0), -1)
-    cv2.ellipse(img, (rescaled_ellipseCenter_int, rescaled_axes, angle), (255, 0, 255), 2) #draw the ellipse
-    demo_resize = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
-    cv2.imshow("intersections", demo_resize)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
- 
+    print("ellipse angle = ", angle)
+
+    # angle zones if there is no rotation
+    vertical_zone = (180-17, 180) # on the board the line would have angle 171° because hough lines are in [0, 180) degrees
+    horizontal_zone = (90-17, 90) # on the board the line would have angle 81°
+
+    #if there is rotation adjust the zones
+    if(angle >= 0 and angle < 30): # ellipse rotated slightly to the right (at most 30°)
+        angle = angle/10 # only slightly influence the angle because ellipse angle might be wrong (happens when image is taken from the front but ellipse is rotated instead of 0)
+        horizontal_zone = (90+angle-17, 90+angle)
+        vertical_zone = (180+angle-17, 180+angle)
+    elif(angle > 150 and angle < 180): # ellipse rotated slightly to the left (at most 30°)
+        angle = (180-angle)/10
+        horizontal_zone = (90-angle-17, 90-angle)
+        vertical_zone = (180-angle-17, 180-angle)
+
+    vertical_line, horizontal_line = find_cal_sector_lines(crop_imgToBBox, vertical_zone, horizontal_zone, top=True)
+
+    remapped_vertical_line = (remap_point(preciseEllipse, bbox_length, vertical_line[0]), remap_point(preciseEllipse, bbox_length, vertical_line[1]))
+    remapped_horizontal_line = (remap_point(preciseEllipse, bbox_length, horizontal_line[0]), remap_point(preciseEllipse, bbox_length, horizontal_line[1]))
+
+    """ top and lower seperate
+
+    top_vertical, top_horizontal = find_cal_sector_lines(top_crop, vertical_zone, horizontal_zone, top=True)
+
+    lower_vertical, lower_horizontal = find_cal_sector_lines(lower_crop, vertical_zone, horizontal_zone, top=False)
+    
+    cal1 = line_ellipse_intersection(preciseEllipse.centerFloat, preciseEllipse.axesFloat, preciseEllipse.angle, top_vertical[1]) # top crop
+    cal4 = line_ellipse_intersection(preciseEllipse.centerFloat, preciseEllipse.axesFloat, preciseEllipse.angle, top_horizontal[1]) # top crop
+    cal2 = line_ellipse_intersection(preciseEllipse.centerFloat, preciseEllipse.axesFloat, preciseEllipse.angle, lower_vertical[1]) # lower crop
+    cal3 = line_ellipse_intersection(preciseEllipse.centerFloat, preciseEllipse.axesFloat, preciseEllipse.angle, lower_horizontal[1]) # lower crop
+    """
+
+    cal1_2 = line_ellipse_intersection(preciseEllipse.centerFloat, preciseEllipse.axesFloat, preciseEllipse.angle, remapped_vertical_line)
+    cal3_4 = line_ellipse_intersection(preciseEllipse.centerFloat, preciseEllipse.axesFloat, preciseEllipse.angle, remapped_horizontal_line)
+
+    cal1 = min(cal1_2, key=lambda y: y[1])
+    cal2 = max(cal1_2, key=lambda y: y[1])
+    cal3 = min(cal3_4, key=lambda x: x[0])
+    cal4 = max(cal3_4, key=lambda x: x[0])
+
+    cal_pts = [cal1, cal2, cal3, cal4]
+
     return cal_pts
+
+def remap_point(preciseEllipse, bbox_length, point):
+    offset_x = int(preciseEllipse.centerFloat[0] - bbox_length / 2)
+    offset_y = int(preciseEllipse.centerFloat[1] - bbox_length / 2)
+    return (point[0] + offset_x, point[1] + offset_y)
 
 def find_furthest_intersections(mask, 
                               center,
@@ -470,7 +468,6 @@ def fit_ellipse_ransac(points, image_size, iterations=100, min_inliers=10):
             # Randomly select 5 points (minimum needed for ellipse fitting)
             sample_indices = set(sample(range(len(points)), sample_size))
             sample_points = points[list(sample_indices)].reshape(-1, 1, 2)
-            print("sample points = ", sample_points)
             
             # Fit ellipse to sample
             candidate = cv2.fitEllipse(sample_points)
@@ -501,11 +498,6 @@ def fit_ellipse_ransac(points, image_size, iterations=100, min_inliers=10):
     returnEllipse.centerFloat = best_ellipse[0]
     returnEllipse.axesFloat = best_ellipse[1]
     returnEllipse.angle = best_ellipse[2]
-
-
-    print("nr of points = ", len(points))
-    print("max inliers = ", max_inliers)
-    print("threshold = ", threshold)
     
     return returnEllipse
 
@@ -698,10 +690,8 @@ def auto_canny(image, sigma=0.33):
 	# return the edged image
 	return edged
 
-def find_sector_lines(img, angle, top=True):
-    cv2.imshow("finding_sector_lines in img: ", img)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
+def find_cal_sector_lines(img, vertical_zone, horizontal_zone, top=True): # returns vertical and horizontal lines in polar and cartesian
+    
     img_size = max(img.shape)
     #print("angle = ", angle)
     #print("img size = ", img_size)
@@ -732,14 +722,47 @@ def find_sector_lines(img, angle, top=True):
     lines_seg = []
     counter = 0
 
-    if angle < 0:
-        angle = -angle
-    vertical_zone = (180-angle, 180), (360-angle, 360)
-    horizontal_zone = (90-angle, 90), (270-angle, 270)
+    if vertical_zone is None:
+        vertical_zone = (180-17, 180), (360-17, 360)
+    if horizontal_zone is None:
+        horizontal_zone = (90-17, 90), (270-17, 270)
 
     # Fit line to find intersection point for dartboard center point
     lines = cv2.HoughLines(autocanny, 1, np.pi/180, 50) # from extracted method in calibration_1.py
-    #print(img_name + " found lines = ", len(lines))
+    vertical_candidate = None
+    horizontal_candidate = None
+
+    for line in lines: # find the first line that fits the vertical zone
+        rho, theta = line[0]
+        if np.deg2rad(vertical_zone[0]) < theta < np.deg2rad(vertical_zone[1]):
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a*rho
+            y0 = b*rho
+            x1 = int(x0 + 4000*(-b))
+            y1 = int(y0 + 4000*(a))
+            x2 = int(x0 - 4000*(-b))
+            y2 = int(y0 - 4000*(a))
+            print("vertical angle: ", np.rad2deg(theta))
+            vertical_candidate = [(x1, y1), (x2, y2)]
+            break
+    
+    for line in lines: # find the first line that fits the horizontal zone
+        rho, theta = line[0]
+        if np.deg2rad(horizontal_zone[0]) < theta < np.deg2rad(horizontal_zone[1]):
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a*rho
+            y0 = b*rho
+            x1 = int(x0 + 4000*(-b))
+            y1 = int(y0 + 4000*(a))
+            x2 = int(x0 - 4000*(-b))
+            y2 = int(y0 - 4000*(a))
+            print("horizontal angle: ", np.rad2deg(theta))
+            horizontal_candidate = [(x1, y1), (x2, y2)]
+            break
+
+    return vertical_candidate, horizontal_candidate        
 
     strongest_10_lines = [lines[0][0]]
 

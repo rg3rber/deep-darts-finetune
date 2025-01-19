@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from time import time
 from dataset.annotate import draw, get_dart_scores
-from dataset.find_board import compute_cal_pts
+from dataset.find_board import compute_cal_pts, find_board_vEllipse2
 import pickle
 import dataset.distort as distort
 import pandas as pd
@@ -224,51 +224,47 @@ def predictTestCompCalPts(
 
     for i in range(len(img_paths)):
         img = cv2.imread(img_paths[i])
-        comp_cal_pts = compute_cal_pts(img)
-            if (hadToEstimateId is not None):
-                print("Had to estimate calibration point: ", hadToEstimateId, " for image: ", img_paths[i], )
-            if write:
-                write_dir = osp.join('.\models', cfg.model.name, 'preds', split)
-                print("write dir: ", write_dir)
-                os.makedirs(write_dir, exist_ok=True)
-                xy = preds[i]
-                xy = xy[xy[:, -1] == 1]
-                gt = pd.read_pickle(labels_path)
-                print("gt: ", gt)
-                gt = gt[gt.img_name == osp.basename(img_paths[i])]
-                gtCalibrationPts = gt.iloc[0].xy[:4]
-                print("gtCalibrationPts: ", gtCalibrationPts)
-                print("xy: ", xy)
-                if(len(xy) < 4):
-                    calibrationErrorFile = calibrationErrorFile.append({
-                        "img_name": osp.basename(img_paths[i]),
-                        "gt": gtCalibrationPts,
-                        "pred": xy,
-                        "total error": "N/A",
-                        "mean error": "N/A",
-                        "inferred cal pt": hadToEstimateId if hadToEstimateId is not None else "N/A",
-                    }, ignore_index=True)
-                    continue
-                calErrorSum = 0
-                for j in range(4):
-                    calErrorSum += np.linalg.norm(gtCalibrationPts[j] - xy[j][:2])
-                print("calibration error: ", calErrorSum)
+        bbox, preciseEllipse = find_board_vEllipse2(img_paths[i])
+        comp_cal_pts = compute_cal_pts(preciseEllipse, img)
+        normalizedCalPts = np.array(comp_cal_pts) / img.shape[0] # normalize the calibration points
+        if write:
+            write_dir = osp.join('.\models', cfg.model.name, 'preds', split)
+            print("write dir: ", write_dir)
+            os.makedirs(write_dir, exist_ok=True)
+            xy = normalizedCalPts
+            gt = pd.read_pickle(labels_path)
+            gt = gt[gt.img_name == osp.basename(img_paths[i])]
+            gtCalibrationPts = gt.iloc[0].xy[:4]
+            if(len(xy) < 4):
                 calibrationErrorFile = calibrationErrorFile.append({
-                    "img_name": osp.basename(img_paths[i]),
+                    "img_name": osp.basename(img_paths[i]),      
                     "gt": gtCalibrationPts,
                     "pred": xy,
-                    "total error": calErrorSum,
-                    "mean error": calErrorSum / 4,
-                    "inferred cal pt": hadToEstimateId if hadToEstimateId is not None else "N/A",
-                }, ignore_index=True)
+                    "total error": "N/A",
+                    "mean error": "N/A",
+                    "inferred cal pt": "N/A",
+                    }, ignore_index=True)
+                continue
+            calErrorSum = 0
+            for j in range(4):
+                calErrorSum += np.linalg.norm(gtCalibrationPts[j] - xy[j][:2])
+            print("calibration error: ", calErrorSum)
+            calibrationErrorFile = calibrationErrorFile.append({
+                "img_name": osp.basename(img_paths[i]),
+                "gt": gtCalibrationPts,
+                "pred": xy,
+                "total error": calErrorSum,
+                "mean error": calErrorSum / 4,
+                "inferred cal pt": "N/A",
+            }, ignore_index=True)
+            for k, gtCalPt in enumerate(gtCalibrationPts):
+                img = cv2.circle(img, (int(gtCalPt[0] * img.shape[0]), int(gtCalPt[1] * img.shape[0])), 5, (255, 0, 0), -1)
+                img = cv2.putText(img, f"gt cal {k+1}", (int(gtCalPt[0] * img.shape[0])+10, int(gtCalPt[1] * img.shape[0])+10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv2.LINE_AA)
+            img = draw(img, xy[:, :2], cfg, circles=False, score=True)
+            print("writing to: " + osp.join(write_dir, os.path.basename(img_paths[i])))
+            os.makedirs(osp.join(write_dir), exist_ok=True)
+            cv2.imwrite(osp.join(write_dir, os.path.basename(img_paths[i])), img)
 
-            if not args.fail_cases:
-                img = draw(cv2.cvtColor(img, cv2.COLOR_RGB2BGR), xy[:, :2], cfg, circles=False, score=True)
-                print("writing to: " + osp.join(write_dir, ablation, os.path.basename(img_paths[i])))
-                os.makedirs(osp.join(write_dir, ablation), exist_ok=True)
-                cv2.imwrite(osp.join(write_dir, ablation, os.path.basename(img_paths[i])), img)
-    fps = (len(img_paths) - 1) / (time() - ti)
-    print('FPS: {:.2f}'.format(fps))
     calibrationErrorFile.to_csv(osp.join(write_dir, "calibrationErrorFile.csv"))
     print("wrote calibrationErrorFile to: ", osp.join(write_dir, "calibrationErrorFile.csv"))
 
@@ -291,7 +287,7 @@ if __name__ == '__main__':
 
     yolo = build_model(cfg)
     yolo.load_weights(osp.join('models', args.cfg, 'weights'), cfg.model.weights_type)
-    if (args.point_computed):
+    if (args.compute_cal_pts):
         print('Computing cal points with: ', cfg.model.name)
         predictTestCompCalPts(yolo, cfg, img_folder=args.image_folder, labels_path=args.labels_path, split=args.split, write=args.write)
     else:

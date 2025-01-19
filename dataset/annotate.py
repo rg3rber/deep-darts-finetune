@@ -290,7 +290,7 @@ def add_last_dart(annot, data_path, folder):
 def get_bounding_box(img_path, scale=0.2):
     bbox = None
     try:
-        bbox = find_board_vEllipse2(img_path)
+        bbox, _ = find_board_vEllipse2(img_path)
     except Exception:
         print('Error finding board, switch to manual annotation')
         bbox = get_bounding_box_old(img_path, scale)
