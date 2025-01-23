@@ -123,8 +123,8 @@ def find_board_vEllipse2(img_path):
 
     cv2.circle(img, remapped_board_center_color_Int, 5, (0, 255, 0), -1)
     cv2.circle(img, remapped_redEllipse.center, 5, (255, 0, 255), -1)
-    cv2.imshow("Bounding box preview:", img)
-    cv2.waitKey()
+    """ cv2.imshow("Bounding box preview:", img)
+    cv2.waitKey() """
 
     """ # why not use the ellipse found in the first step?
     red_resize, red_scale_factor = proportionalResize(red_binary, 1000)
@@ -218,9 +218,9 @@ def find_board_vEllipse2(img_path):
     cv2.circle(img, (int(ellipseRight[0]), int(ellipseRight[1])), 2, (0, 255, 0), -1)
     #cv2.putText(img, "EllipseRight", (int(ellipseRight[0]), int(ellipseRight[1])), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 3, cv2.LINE_AA)
 
-    demo_resize = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
+    """ demo_resize = cv2.resize(img, (0, 0), fx = 0.5, fy = 0.5)
     cv2.imshow("Bounding box preview:", demo_resize)
-    cv2.waitKey()
+    cv2.waitKey() """
 
     """ draw the inferred circle: """
     #cv2.circle(img, remapped_board_center_color, 2, (255, 0, 255), -1)

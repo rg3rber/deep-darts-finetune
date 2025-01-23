@@ -257,16 +257,18 @@ def predictTestCompCalPts(
                 "mean error": calErrorSum / 4,
                 "inferred cal pt": "N/A",
             }, ignore_index=True)
+            img = cv2.ellipse(img, (preciseEllipse.centerFloat, preciseEllipse.axesFloat, preciseEllipse.angle), (255, 0, 255), 2)
             for k, gtCalPt in enumerate(gtCalibrationPts):
-                img = cv2.circle(img, (int(gtCalPt[0] * img.shape[0]), int(gtCalPt[1] * img.shape[0])), 5, (255, 0, 0), -1)
-                img = cv2.putText(img, f"gt cal {k+1}", (int(gtCalPt[0] * img.shape[0])+10, int(gtCalPt[1] * img.shape[0])+10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv2.LINE_AA)
+                img = cv2.circle(img, (int(gtCalPt[0] * img.shape[0]), int(gtCalPt[1] * img.shape[0])), 1, (255, 0, 0), -1)
+                img = cv2.putText(img, f"gt cal {k+1}", (int(gtCalPt[0] * img.shape[0])+10, int(gtCalPt[1] * img.shape[0])+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, 5)
             img = draw(img, xy[:, :2], cfg, circles=False, score=True)
+
             print("writing to: " + osp.join(write_dir, os.path.basename(img_paths[i])))
             os.makedirs(osp.join(write_dir), exist_ok=True)
             cv2.imwrite(osp.join(write_dir, os.path.basename(img_paths[i])), img)
 
     calibrationErrorFile.to_csv(osp.join(write_dir, "calibrationErrorFile.csv"))
-    print("wrote calibrationErrorFile to: ", osp.join(write_dir, "calibrationErrorFile.csv"))
+    print("wrote calibrationErrorFile to: ", osp.join(write_dir, "calibrationErrorFile_board_angles.csv"))
 
 if __name__ == '__main__':
     import sys
