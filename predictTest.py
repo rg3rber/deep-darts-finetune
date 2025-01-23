@@ -165,17 +165,18 @@ def predictTest(
                     "mean error": calErrorSum / 4,
                     "inferred cal pt": hadToEstimateId if hadToEstimateId is not None else "N/A",
                 }, ignore_index=True)
-
-                if not args.fail_cases:
-                    img = draw(cv2.cvtColor(img, cv2.COLOR_RGB2BGR), xy[:, :2], cfg, circles=False, score=True)
-                    print("writing to: " + osp.join(write_dir, ablation, os.path.basename(img_paths[i])))
-                    os.makedirs(osp.join(write_dir, ablation), exist_ok=True)
-                    cv2.imwrite(osp.join(write_dir, ablation, os.path.basename(img_paths[i])), img)
+                for k, gtCalPt in enumerate(gtCalibrationPts):
+                    img = cv2.circle(cv2.cvtColor(img, cv2.COLOR_RGB2BGR), (int(gtCalPt[0] * img.shape[0]), int(gtCalPt[1] * img.shape[0])), 1, (255, 0, 0), -1)
+                    img = cv2.putText(cv2.cvtColor(img, cv2.COLOR_RGB2BGR), f"gt cal {k+1}", (int(gtCalPt[0] * img.shape[0])+10, int(gtCalPt[1] * img.shape[0])+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, 5)
+                img = draw(cv2.cvtColor(img, cv2.COLOR_RGB2BGR), xy[:, :2], cfg, circles=False, score=True)
+                print("writing to: " + osp.join(write_dir, ablation, os.path.basename(img_paths[i])))
+                os.makedirs(osp.join(write_dir, ablation), exist_ok=True)
+                cv2.imwrite(osp.join(write_dir, ablation, os.path.basename(img_paths[i])), img)
 
         fps = (len(img_paths) - 1) / (time() - ti)
         print('FPS: {:.2f}'.format(fps))
-        calibrationErrorFile.to_csv(osp.join(write_dir, "calibrationErrorFile.csv"))
-        print("wrote calibrationErrorFile to: ", osp.join(write_dir, "calibrationErrorFile.csv"))
+        calibrationErrorFile.to_csv(osp.join(write_dir, "calibrationErrorFile_pred.csv"))
+        print("wrote calibrationErrorFile to: ", osp.join(write_dir, "calibrationErrorFile_pred.csv"))
 """
         ASE = []  # absolute score error
         for pred, gt in zip(preds, xys):
