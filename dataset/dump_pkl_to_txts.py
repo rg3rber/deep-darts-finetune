@@ -44,6 +44,7 @@ def convert_annotations(pkl_path: str, output_dir: str, bbox_size: float) -> Non
     # Process each row
     for _, row in df.iterrows():
         # Get image name and points
+        img_folder = row['img_folder']
         img_name = row['img_name']
         points = row['xy']
         
@@ -52,7 +53,7 @@ def convert_annotations(pkl_path: str, output_dir: str, bbox_size: float) -> Non
             continue
             
         # Create output path (change extension from jpg to txt)
-        output_path = os.path.join(output_dir, os.path.splitext(img_name)[0] + '.txt')
+        output_path = os.path.join(output_dir, f"{img_folder}_{os.path.splitext(img_name)[0]}" + '.txt')
         
         # Create YOLO annotation file
         create_yolo_annotation(points, output_path, bbox_size)
