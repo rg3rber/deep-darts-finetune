@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from yacs.config import CfgNode as CN
 import argparse
-from find_board import find_board_vEllipse2
+from dataset.find_board import find_board_vEllipse2
 
 # used to convert dart angle to board number
 BOARD_DICT = {
@@ -233,6 +233,7 @@ def draw(img, xy, cfg, circles, score, color=(255, 255, 0)):
         y = int(round(y))
         if i >= 4:
             cv2.circle(img, (x, y), 10, c, 1)
+            cv2.circle(img, (x, y), 1, c, -1) # draw the center
             if score:
                 txt = str(scores[i - 4])
             else:
@@ -241,6 +242,7 @@ def draw(img, xy, cfg, circles, score, color=(255, 255, 0)):
                     font_scale, c, line_type)
         else:
             cv2.circle(img, (x, y), 10, c, 1)
+            cv2.circle(img, (x, y), 1, c, -1) # draw the center
             cv2.putText(img, str(i + 1), (x + 8, y), font,
                         font_scale/2, c, line_type)
     return img
