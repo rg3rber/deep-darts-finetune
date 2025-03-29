@@ -53,8 +53,11 @@ def convert_annotations(pkl_path: str, output_dir: str, bbox_size: float) -> Non
             continue
             
         # Create output path (change extension from jpg to txt)
-        output_path = os.path.join(output_dir, f"{img_folder}_{os.path.splitext(img_name)[0]}" + '.txt')
+        # add img folder for deepdarts images
+        # output_path = os.path.join(output_dir, f"{img_folder}_{os.path.splitext(img_name)[0]}" + '.txt')
         
+        output_path = os.path.join(output_dir, f"{img_name.split('.')[0]}" + '.txt')
+
         # Create YOLO annotation file
         create_yolo_annotation(points, output_path, bbox_size)
 
