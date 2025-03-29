@@ -78,6 +78,8 @@ def rename_images_in_dataset(base_path='images', start_id=1):
         
         # Create new filename with folder name
         new_filename = f"IMG_{global_id}_{folder_name}{file_ext}"
+        #file_name = os.path.basename(image_path)
+        #new_filename = f"{folder_name}_{file_name}"
         
         # Get directory of the current image
         directory = os.path.dirname(image_path)
