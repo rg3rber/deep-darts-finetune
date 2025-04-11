@@ -3,9 +3,12 @@ __pycache__
 dataset/images/
 dataset/cropped_images/800/d1_*
 dataset/cropped_images/800/d2_*
+dataset/cropped_images/800/
+dataset/cropped_images/800/temp/
 models/*/preds/
 dataset/boards/
 removed_for_renaming/
 dataset/visualizations/
 dataset/hough_*/
+dataset/annotations/test_v1_labels/*
 *.zip
