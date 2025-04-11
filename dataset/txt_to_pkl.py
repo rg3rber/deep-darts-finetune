@@ -33,11 +33,10 @@ def convert_txt_to_pkl(labels_dir: str, output_pkl: str):
             if not points:
                 continue
             
-            # Extract image folder and name
-            img_folder, img_name = txt_file.rsplit('_', 1)
-            img_name = img_name.replace('.txt', '.jpg')
-            
-            #set img folder manually
+            # Extract imagename
+            img_name = txt_file.replace('.txt', '.jpg')
+
+            #set img folder manually to test_v1
             img_folder = 'test_v1'
 
             data.append({'img_name': img_name, 'xy': points, 'img_folder': img_folder})
