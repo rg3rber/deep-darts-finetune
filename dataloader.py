@@ -33,7 +33,7 @@ def get_splits(path='./dataset/labels.pkl', dataset='d1', split='train'):
 
     val_folders, test_folders = datasets[dataset]["val"], datasets[dataset]["test"]
     df = pd.read_pickle(path)
-    df = df[df.img_folder.str.contains(dataset)]
+    df = df[df.img_folder.str.contains(dataset)] # careful when using test folders: Have to start with d3_
 
     splits = {
         "val": df[np.isin(df.img_folder, val_folders)],
