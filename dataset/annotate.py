@@ -91,14 +91,14 @@ def board_radii(r_d, cfg):
     return r_t, r_ob, r_ib, w_dt
 
 
-def draw_circles(img, xy, cfg, color=(255, 255, 255)):
+def draw_circles(img, xy, cfg, color=(255, 255, 255), thickness=4): 
     c, r_d = get_circle(xy)  # double radius
     if c is None or r_d is None:  # Skip drawing if invalid values
         return img
     r_t, r_ob, r_ib, w_dt = board_radii(r_d, cfg)
     center = (int(round(c[0])), int(round(c[1])))
     for r in [r_d, r_d - w_dt, r_t, r_t - w_dt, r_ib, r_ob]:
-        cv2.circle(img, center, int(r), color)
+        cv2.circle(img, center, int(r), color, thickness)
     return img
 
 
@@ -210,7 +210,7 @@ def total_score(scores):
 def draw(img, xy, cfg, circles, score, color=(255, 255, 0)):
     xy = np.array(xy)
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 2
+    font_scale = 3
     line_type = 5
     if xy.shape[0] > 7:
         xy = xy.reshape((-1, 2))
@@ -232,17 +232,19 @@ def draw(img, xy, cfg, circles, score, color=(255, 255, 0)):
         x = int(round(x))
         y = int(round(y))
         if i >= 4:
-            cv2.circle(img, (x, y), 10, c, 1)
+            cv2.circle(img, (x, y), 10, c, 2)
+            cv2.circle(img, (x, y), 2, c, -1) # draw the center
             if score:
                 txt = str(scores[i - 4])
             else:
-                txt = str(i + 1)
+                txt = ""
             cv2.putText(img, txt, (x + 8, y), font,
                     font_scale, c, line_type)
         else:
-            cv2.circle(img, (x, y), 10, c, 1)
+            cv2.circle(img, (x, y), 10, c, 2)
+            cv2.circle(img, (x, y), 2, c, -1) # draw the center
             cv2.putText(img, str(i + 1), (x + 8, y), font,
-                        font_scale/2, c, line_type)
+                        font_scale, c, line_type)
     return img
 
 

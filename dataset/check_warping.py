@@ -13,7 +13,7 @@ def draw_warped(img, xy, cfg, circles=True, score=True, color=(255, 255, 0)):
     """Draw darts and scores on warped image"""
     xy = np.array(xy)
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 2
+    font_scale = 3
     line_type = 5
     
     if xy.shape[0] > 7:
@@ -32,8 +32,13 @@ def draw_warped(img, xy, cfg, circles=True, score=True, color=(255, 255, 0)):
         
     if xy_warped.shape[0] > 4 and score:
         scores = get_dart_scores(xy, cfg)  # Use original xy for scores
-        cv2.putText(img_warped, str(total_score(scores)), (50, 50), font,
-                    font_scale, (255, 255, 255), line_type)
+        text = "Score: " + str(total_score(scores))
+        text_size, _ = cv2.getTextSize(text, font, font_scale*1.5, line_type)
+        text_width, text_height = text_size
+        background_top_left = (40, 120 - text_height - 10)
+        background_bottom_right = (40 + text_width + 10, 120 + 10)
+        cv2.rectangle(img_warped, background_top_left, background_bottom_right, (255, 255, 255), -1)
+        cv2.putText(img_warped, text, (50, 120), font, font_scale*1.5, color, line_type)
                     
     for i, [x, y] in enumerate(xy_warped):
         x = int(round(x))
@@ -44,7 +49,8 @@ def draw_warped(img, xy, cfg, circles=True, score=True, color=(255, 255, 0)):
             c = color  # color for dart points
             
         if i >= 4:
-            cv2.circle(img_warped, (x, y), 10, c, 1)
+            cv2.circle(img_warped, (x, y), 10, c, 2)
+            cv2.circle(img_warped, (x, y), 2, c, -1) # draw the center
             if score:
                 txt = str(scores[i - 4])
             else:
@@ -52,9 +58,10 @@ def draw_warped(img, xy, cfg, circles=True, score=True, color=(255, 255, 0)):
             cv2.putText(img_warped, txt, (x + 8, y), font,
                     font_scale, c, line_type)
         else:
-            cv2.circle(img_warped, (x, y), 10, c, 1)
+            cv2.circle(img_warped, (x, y), 10, c, 2)
+            cv2.circle(img_warped, (x, y), 2, c, -1) # draw the center
             cv2.putText(img_warped, str(i + 1), (x + 8, y), font,
-                        font_scale/2, c, line_type)
+                        font_scale, c, line_type)
                         
     return img_warped
 
@@ -90,9 +97,9 @@ def create_side_by_side(img1, img2, img_name):
     return combined
 
 def main(cfg, folder, scale, draw_circles, dart_score=True):
-    img_dir = osp.join("../", cfg.data.path, 'images', folder)
+    img_dir = osp.join('images', folder)
     imgs = sorted(os.listdir(img_dir))
-    annot_path = osp.join("../", cfg.data.path, 'annotations', folder + '.pkl')
+    annot_path = osp.join('annotations', folder + '.pkl')
     
     if osp.isfile(annot_path):
         annot = pd.read_pickle(annot_path)
@@ -113,7 +120,7 @@ def main(cfg, folder, scale, draw_circles, dart_score=True):
             crop = cv2.resize(crop, (int(crop.shape[1] * scale), int(crop.shape[0] * scale)))
             
             # Draw original image
-            original = draw(crop.copy(), np.array(a['xy']), cfg, draw_circles, dart_score)
+            original = draw(crop.copy(), np.array(a['xy']), cfg, False, False)
             
             # Draw warped image
             warped = draw_warped(crop.copy(), np.array(a['xy']), cfg, draw_circles, dart_score)
@@ -129,7 +136,7 @@ def main(cfg, folder, scale, draw_circles, dart_score=True):
 if __name__ == '__main__':
     import sys
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--img-folder', default='d3_02_12_2024_1')
+    parser.add_argument('-f', '--img-folder', default='d3_02_12_2024_4')
     parser.add_argument('-s', '--scale', type=float, default=0.5)
     parser.add_argument('-d', '--draw-circles', action='store_true')
     args = parser.parse_args()
