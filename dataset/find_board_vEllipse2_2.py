@@ -5,7 +5,7 @@ import os
 import os.path as osp
 import matplotlib.pyplot as plt
 
-def find_board_vEllipse2(img_path):
+def find_board_vEllipse2_2(img_path):
 
     img = cv2.imread(img_path)
     if img is None:

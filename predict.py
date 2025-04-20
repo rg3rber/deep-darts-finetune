@@ -77,9 +77,15 @@ def predict(
         os.makedirs(write_dir, exist_ok=True)
 
     data = get_splits(labels_path, dataset, split)
+    print('Number of images: {}'.format(len(data)))
     img_prefix = osp.join(cfg.data.path, 'cropped_images', str(cfg.model.input_size))
+    print('Image prefix: {}'.format(img_prefix))
     img_paths = [osp.join(img_prefix, folder, name) for (folder, name) in zip(data.img_folder, data.img_name)]
-
+    if (len(img_paths) == 0):
+        print('No images found in the specified directory.')
+        return
+    else:
+        print(img_paths[0])
     xys = np.zeros((len(data), 7, 3))  # third column for visibility
     data.xy = data.xy.apply(np.array)
     for i, _xy in enumerate(data.xy):
@@ -100,14 +106,15 @@ def predict(
         preds[i] = bboxes_to_xy(bboxes, max_darts)
 
         if write:
-            write_dir = osp.join('./models', cfg.model.name, 'preds', split, p.split('/')[-2])
+            write_dir = osp.join('./models', cfg.model.name, 'preds', split, osp.basename(osp.dirname(p))) #this is a pain
             os.makedirs(write_dir, exist_ok=True)
             xy = preds[i]
             xy = xy[xy[:, -1] == 1]
             error = sum(get_dart_scores(preds[i, :, :2], cfg, numeric=True)) - sum(get_dart_scores(xys[i, :, :2], cfg, numeric=True))
             if not args.fail_cases or (args.fail_cases and error != 0):
                 img = draw(cv2.cvtColor(img, cv2.COLOR_RGB2BGR), xy[:, :2], cfg, circles=False, score=True)
-                cv2.imwrite(osp.join(write_dir, p.split('/')[-1]), img)
+                print("writing image to: ", osp.join(write_dir, osp.basename(p)))
+                cv2.imwrite(osp.join(write_dir, osp.basename(p)), img)
 
     fps = (len(img_paths) - 1) / (time() - ti)
     print('FPS: {:.2f}'.format(fps))
