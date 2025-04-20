@@ -75,9 +75,10 @@ def rename_images_in_dataset(base_path='images', start_id=1):
     for global_id, (image_path, creation_date, folder_name) in enumerate(image_info, start=start_id):
         # Extract file extension
         file_ext = os.path.splitext(image_path)[1]
-        
+        split_foldername = folder_name.split('_')[1:-1]  # use just the tail after d3_ 
+        new_foldername = '_'.join(split_foldername)
         # Create new filename with folder name
-        new_filename = f"IMG_{global_id}_{folder_name}{file_ext}"
+        new_filename = f"{new_foldername}_IMG_{global_id}{file_ext}"
         #file_name = os.path.basename(image_path)
         #new_filename = f"{folder_name}_{file_name}"
         
