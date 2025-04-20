@@ -51,7 +51,10 @@ Dataset 2:\
 - Run "combine_labels"
 - Run "crop_images" with --size=800 and appropriate --labels-path
 
-## deepdarts_d3
+## deepdarts_d3 finetune
+
+- 244 images
+   - 28 val, 24 test and 192 train images
 
 - camera setup:
    - 120cm from board
@@ -61,6 +64,7 @@ Dataset 2:\
    - zoom: 1.5x
    - light color temperature: LED strip set to most white: 6700K (bullseye)
    - brightness: LED strip set to max brightness: 845 lux (bullseye)
+
  
 ## Board detection: 
 
@@ -68,5 +72,7 @@ Dataset 2:\
 - proper lighting (best led surround)
 - no green or red background/surround ring (as of now)
 - image > 800x800
-- 
+
+
+
 
