@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from yacs.config import CfgNode as CN
 import argparse
-from dataset.find_board import find_board_vEllipse2
+from find_board import find_board_vEllipse2
 
 # used to convert dart angle to board number
 BOARD_DICT = {

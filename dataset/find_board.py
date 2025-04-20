@@ -42,7 +42,16 @@ def find_board_vEllipse2(img_path):
     green_mask = cv2.inRange(hsv, lower_green, upper_green)
     red_mask = cv2.bitwise_or(red_mask1, red_mask2)
     final_mask = cv2.bitwise_or(red_mask, green_mask)
+    cv2.imshow("final mask", final_mask)
+    cv2.waitKey(0)
+    cv2.imwrite(osp.join("images/test_color_filter_masked", "final_mask"+img_name), final_mask)
+    print("wrote img: images/test_color_filter/masked/final_mask" + img_name)
     binary = otsu_thresholding(final_mask)
+
+    cv2.imshow("binary", binary)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    cv2.imwrite(osp.join("images/test_color_filter_masked", "binary"+img_name), binary)
 
     red_binary = otsu_thresholding(red_mask)
     green_binary = otsu_thresholding(green_mask) #comparing red vs green
@@ -1010,9 +1019,13 @@ def findEllipse(img, img_name=None, original_img=None, scale_factor=1):
     kernel = np.ones((5, 5), np.uint8)
     closed = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
     #closed = otsu_thresholding(closed)
-
-    """ cv2.imshow("closed", closed)
-    cv2.waitKey() """
+    print("closed shape = ", closed.shape)
+    cv2.imwrite(osp.join("images/test_color_filter_masked", "closed_" + osp.basename(img_name)), closed)
+    print("writing closed image to: ", osp.join("images/test_color_filter_masked", "closed_" + osp.basename(img_name)))
+        
+    cv2.imshow("closed", closed)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
 
 
     contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
